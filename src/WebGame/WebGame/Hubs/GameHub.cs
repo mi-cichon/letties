@@ -1,31 +1,39 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using WebGame.Constants;
 using WebGame.Extensions;
+using WebGame.Lobbies;
+using WebGame.Lobbies.Models;
 using WebGame.Services;
 
 namespace WebGame.Hubs;
 
 [Authorize]
-public class GameHub(PlayerTracker playerTracker, NotificationService notificationService) : Hub
+public class GameHub(LobbyManager lobbyManager, NotificationService notificationService) : Hub
 {
-    public async Task<string> Join()
+    public async Task<JoinResponse> Join()
     {
-        var username = Context.GetUsername();
-        await playerTracker.LoginPlayer(username, Context.ConnectionId);
-        await Groups.AddToGroupAsync(Context.ConnectionId, ServerGroups.GameTable);
+        var playerName = Context.GetUsername();
+        var playerId = Context.GetPlayerId();
         
-        return Context.ConnectionId;
+        var lobbyState = await lobbyManager.AssignPlayerToLobby(playerId, Context.ConnectionId, playerName);
+        return new JoinResponse(playerId, lobbyState);
+    }
+
+    public async Task<bool> EnterSeat(Guid seatId)
+    {
+        return await lobbyManager.JoinSeat(Context.GetPlayerId(), seatId);
     }
     
-    public async Task SendMessage(string user, string message)
+    public async Task SendMessage(string message)
     {
-        var nickname = playerTracker.GetPlayerNickname(Context.ConnectionId);
-        await notificationService.SendMessageToPlayers(nickname, message);
+        var username = Context.GetUsername();
+        await lobbyManager.SendMessage(username, message);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        await playerTracker.PlayerDisconnected(Context.ConnectionId);
+        await lobbyManager.LeaveLobby(Context.ConnectionId);
     }
 }
+
+public record JoinResponse(Guid PlayerId, LobbyStateDetails LobbyState);

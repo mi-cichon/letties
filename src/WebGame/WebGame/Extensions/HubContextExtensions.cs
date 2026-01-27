@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.SignalR;
 
 namespace WebGame.Extensions;
 
@@ -14,5 +15,17 @@ public static class HubContextExtensions
         }
         
         return username;
+    }
+
+    public static Guid GetPlayerId(this HubCallerContext context)
+    {
+        var playerId = context.User?.Claims.SingleOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if (playerId == null)
+        {
+            throw new InvalidOperationException("The player id claim was not found.");
+        }
+        
+        return Guid.Parse(playerId);
     }
 }

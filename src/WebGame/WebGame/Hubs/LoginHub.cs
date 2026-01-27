@@ -4,12 +4,18 @@ using WebGame.Services;
 
 namespace WebGame.Hubs;
 
-[AllowAnonymous]
-public class LoginHub(PlayerTracker playerTracker, AuthorizationService authorizationService) : Hub
+public class LoginHub(AuthorizationService authorizationService) : Hub
 {
+    [AllowAnonymous]
     public string Login(string userName)
     {
         var jwtToken = authorizationService.GenerateJwtToken(userName);
         return jwtToken;
+    }
+
+    [AllowAnonymous]
+    public bool Validate(string accessToken)
+    {
+        return authorizationService.IsTokenValidForAtLeastOneDay(accessToken);
     }
 }

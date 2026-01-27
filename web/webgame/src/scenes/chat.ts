@@ -2,7 +2,6 @@ import Phaser from "phaser";
 import { COLORS } from "../constants";
 
 export interface ChatCapableScene extends Phaser.Scene {
-  chatDisplay?: Phaser.GameObjects.Text;
   chatInput?: HTMLInputElement;
   sendChatMessage: (message: string) => void;
 }
@@ -50,16 +49,62 @@ export function createChatUI(scene: ChatCapableScene, layout: ChatLayout) {
     .setOrigin(0.5, 0)
     .setDepth(2);
 
-  scene.chatDisplay = scene.add
-    .text(chatX + 12, chatY + 40, "", {
-      fontSize: "12px",
-      fontFamily: "Arial",
-      color: "#1a1410",
-      wordWrap: { width: chatWidth - 24 },
-      lineSpacing: 5,
-    })
-    .setOrigin(0, 0)
-    .setDepth(2);
+  const chatDisplayDiv = document.createElement("div");
+  chatDisplayDiv.style.position = "fixed";
+  chatDisplayDiv.style.fontSize = "12px";
+  chatDisplayDiv.style.fontFamily = "Arial";
+  chatDisplayDiv.style.color = "#1a1410";
+  chatDisplayDiv.style.backgroundColor = "transparent";
+  chatDisplayDiv.style.overflowY = "auto";
+  chatDisplayDiv.style.overflowX = "hidden";
+  chatDisplayDiv.style.lineHeight = "1.4";
+  chatDisplayDiv.style.whiteSpace = "pre-wrap";
+  chatDisplayDiv.style.wordWrap = "break-word";
+  chatDisplayDiv.style.padding = "4px 8px 12px 8px";
+  chatDisplayDiv.style.margin = "0";
+  chatDisplayDiv.style.pointerEvents = "auto";
+  chatDisplayDiv.style.zIndex = "1000";
+  chatDisplayDiv.style.boxSizing = "border-box";
+
+  chatDisplayDiv.style.scrollbarWidth = "thin";
+  chatDisplayDiv.style.scrollbarColor = "#8b7355 #d4c5b9";
+
+  const styleSheet = document.createElement("style");
+  styleSheet.textContent = `
+    .chat-display::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat-display::-webkit-scrollbar-track {
+      background: #d4c5b9;
+      border-radius: 3px;
+    }
+    .chat-display::-webkit-scrollbar-thumb {
+      background: #8b7355;
+      border-radius: 3px;
+    }
+    .chat-display::-webkit-scrollbar-thumb:hover {
+      background: #705d49;
+    }
+  `;
+  document.head.appendChild(styleSheet);
+  chatDisplayDiv.classList.add("chat-display");
+
+  const updateChatDisplayPosition = () => {
+    const canvas = document.querySelector("canvas");
+    if (canvas) {
+      const rect = canvas.getBoundingClientRect();
+      chatDisplayDiv.style.left = `${rect.left + chatX + 12}px`;
+      chatDisplayDiv.style.top = `${rect.top + chatY + 36}px`;
+      chatDisplayDiv.style.width = `${chatWidth - 16}px`;
+      chatDisplayDiv.style.height = `${chatHeight - 82}px`;
+    }
+  };
+
+  document.body.appendChild(chatDisplayDiv);
+  updateChatDisplayPosition();
+  window.addEventListener("resize", updateChatDisplayPosition);
+
+  (scene as any).chatDisplayDiv = chatDisplayDiv;
 
   const inputElement = document.createElement("input");
   inputElement.type = "text";
@@ -142,9 +187,10 @@ export function createChatUI(scene: ChatCapableScene, layout: ChatLayout) {
 
   scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
     window.removeEventListener("resize", updateInputPosition);
+    window.removeEventListener("resize", updateChatDisplayPosition);
     inputElement.remove();
+    chatDisplayDiv.remove();
     sendButton.destroy();
-    scene.chatDisplay?.destroy();
   });
 
   scene.chatInput = inputElement;

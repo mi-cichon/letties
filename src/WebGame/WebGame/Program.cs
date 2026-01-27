@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using WebGame.Hubs;
+using WebGame.Lobbies;
 using WebGame.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,7 +11,8 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddSignalR();
 
-builder.Services.AddSingleton<PlayerTracker>();
+builder.Services.AddSingleton<LobbyManager>();
+builder.Services.AddSingleton<GameLobby>();
 builder.Services.AddTransient<NotificationService>();
 builder.Services.AddTransient<AuthorizationService>();
 
