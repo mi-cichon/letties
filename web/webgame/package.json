@@ -1,0 +1,20 @@
+{
+  "name": "webgame",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.7",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.4"
+  },
+  "dependencies": {
+    "@microsoft/signalr": "^10.0.0",
+    "phaser": "^3.90.0"
+  }
+}
