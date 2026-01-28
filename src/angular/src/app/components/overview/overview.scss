@@ -1,0 +1,152 @@
+.overview-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 80px);
+  padding: 24px;
+  box-sizing: border-box;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.table-wrapper {
+  background: #1e1e1e;
+  border-radius: 12px;
+  overflow-y: scroll;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  min-height: 0;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #e2c08d;
+    border-radius: 4px;
+  }
+}
+
+.lobby-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  // Żeby nagłówek nie uciekał przy przewijaniu:
+  thead {
+    position: sticky;
+    top: 0;
+    background-color: #1a1a1a; // Dopasuj do tła aplikacji
+    z-index: 10;
+  }
+}
+
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+
+  h2 {
+    color: #e2c08d;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+}
+
+.lobby-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+
+  th {
+    background: #252525;
+    padding: 1rem;
+    color: #888;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+  }
+
+  td {
+    padding: 1.2rem 1rem;
+    border-bottom: 1px solid #2a2a2a;
+  }
+
+  .lobby-row {
+    transition: background 0.2s;
+    &:hover {
+      background: #252525;
+    }
+  }
+}
+
+.id-cell {
+  font-family: 'Courier New', Courier, monospace;
+  color: #aaa;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  background: #333;
+  color: #ddd;
+
+  &[data-state='WaitingForPlayers'] {
+    color: #4caf50;
+    background: rgba(76, 175, 80, 0.1);
+  }
+  &[data-state='InProgress'] {
+    color: #ff9800;
+    background: rgba(255, 152, 0, 0.1);
+  }
+}
+
+.join-btn {
+  background: #e2c08d;
+  color: #333;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition:
+    transform 0.1s,
+    background 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #f0d5ab;
+    transform: translateY(-2px);
+  }
+
+  &:disabled {
+    background: #444;
+    color: #777;
+    cursor: not-allowed;
+  }
+}
+
+.refresh-btn {
+  background: none;
+  border: 1px solid #444;
+  color: #e2c08d;
+  font-size: 1.5rem;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.spinning {
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,35 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="logo-area">
+      <span class="logo-tile">L</span>
+      <span class="logo-tile">T</span>
+      <span class="logo-tile">S</span>
+    </div>
+
+    <h1>{{ 'login.welcome' | transloco }}</h1>
+    <p>{{ 'login.span' | transloco }}</p>
+
+    <form (submit)="onSubmit(); $event.preventDefault()">
+      <div class="input-group">
+        <input
+          type="text"
+          [ngModel]="username()"
+          (ngModelChange)="username.set($event)"
+          name="username"
+          [placeholder]="'login.name' | transloco"
+          maxLength="15"
+          autocomplete="off"
+          [disabled]="isLoading()"
+        />
+      </div>
+
+      <button type="submit" [disabled]="username().length < 3 || isLoading()">
+        @if (isLoading()) {
+          {{ 'login.loggingIn' | transloco }}
+        } @else {
+          {{ 'login.join' | transloco }}
+        }
+      </button>
+    </form>
+  </div>
+</div>

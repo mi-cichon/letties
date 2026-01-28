@@ -1,0 +1,104 @@
+.lobby-container {
+  display: flex;
+  height: calc(100vh - 80px); // Odliczamy header
+  background: #121212;
+  color: #eee;
+}
+
+.lobby-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.lobby-sidebar {
+  width: 320px;
+  background: #181818;
+  border-left: 1px solid #2a2a2a;
+  display: flex;
+  flex-direction: column;
+}
+
+.seats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.seat-card {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 1.5rem;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition:
+    transform 0.2s,
+    border-color 0.2s;
+
+  &.occupied {
+    border-color: #e2c08d; // Złoty dla zajętych
+    background: linear-gradient(145deg, #1e1e1e, #252525);
+  }
+
+  .player-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #e2c08d;
+  }
+}
+
+.join-seat-btn {
+  width: 100%;
+  padding: 0.8rem;
+  background: transparent;
+  border: 1px dashed #555;
+  color: #888;
+  border-radius: 8px;
+  cursor: pointer;
+  &:hover {
+    border-color: #e2c08d;
+    color: #e2c08d;
+    background: rgba(226, 192, 141, 0.05);
+  }
+}
+
+// Czat SCSS
+.chat-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .input-area {
+    padding: 1rem;
+    border-top: 1px solid #2a2a2a;
+    display: flex;
+    gap: 0.5rem;
+
+    input {
+      flex: 1;
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 4px;
+      padding: 0.6rem;
+      color: white;
+      &:focus {
+        outline: 1px solid #e2c08d;
+      }
+    }
+  }
+}

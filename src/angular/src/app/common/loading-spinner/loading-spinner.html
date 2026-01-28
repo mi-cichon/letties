@@ -1,0 +1,8 @@
+<div class="scrabble-circle">
+  @for (tile of ['L', 'E', 'T', 'T', 'I', 'E', 'S']; track $index) {
+    <div class="tile" [style.--i]="$index">
+      {{ tile }}
+      <span>{{ 2 }}</span>
+    </div>
+  }
+</div>

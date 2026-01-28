@@ -1,3 +1,36 @@
 {
-  "title": "Literki"
+  "title": "Letties",
+  "logout": "Wyloguj",
+  "login": {
+    "welcome": "Witaj w Letties",
+    "span": "Wpisz swój nick, aby dołączyć do gry",
+    "name": "Nazwa użytkownika",
+    "loggingIn": "Logowanie...",
+    "join": "DOŁĄCZ DO GRY"
+  },
+  "overview": {
+    "id": "ID",
+    "availableGames": "Dostępne Pokoje",
+    "loadingLobbies": "Pobieranie listy gier",
+    "noLobbies": "Brak aktywnych gier. Bądź pierwszy!",
+    "createNew": "STWÓRZ NOWĄ GRĘ",
+    "status": "Status",
+    "players": "Gracze",
+    "join": "DOŁĄCZ",
+    "states": {
+      "Lobby": "W poczekalni",
+      "Game": "W trakcie gry",
+      "PostGame": "Koniec gry"
+    }
+  },
+  "chat": {
+    "placeholder": "Napisz wiadomość...",
+    "noMessages": "Cisza na czacie... przywitaj się!"
+  },
+  "lobby": {
+    "takeSeat": "Zajmij miejsce",
+    "spectators": "Widzowie",
+    "leave": "Opuść lobby",
+    "startGame": "Rozpocznij grę"
+  }
 }

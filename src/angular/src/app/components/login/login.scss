@@ -1,0 +1,105 @@
+.login-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #121212; // Bardzo ciemne tło
+}
+
+.login-card {
+  background: #1e1e1e;
+  padding: 3rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid #333;
+
+  h1 {
+    color: #fff;
+    margin: 1.5rem 0 0.5rem;
+    font-size: 1.8rem;
+  }
+
+  p {
+    color: #888;
+    margin-bottom: 2rem;
+  }
+}
+
+.logo-area {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+
+  .logo-tile {
+    width: 40px;
+    height: 40px;
+    background: #e2c08d;
+    color: #333;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+    font-size: 1.2rem;
+    box-shadow: 0 3px 0 #b08d57;
+  }
+}
+
+.input-group {
+  margin-bottom: 1.5rem;
+
+  input {
+    width: 100%;
+    padding: 1rem;
+    background: #2a2a2a;
+    border: 2px solid #333;
+    border-radius: 0.5rem;
+    color: #fff;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+    outline: none;
+
+    &:focus {
+      border-color: #e2c08d;
+      background: #333;
+    }
+
+    &::placeholder {
+      color: #666;
+    }
+  }
+}
+
+button {
+  width: 100%;
+  padding: 1rem;
+  background: #e2c08d;
+  color: #333;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 0 #b08d57;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: #f0d5ab;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 0 0 transparent;
+  }
+
+  &:disabled {
+    background: #555;
+    color: #888;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+}

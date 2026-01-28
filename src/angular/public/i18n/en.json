@@ -1,3 +1,36 @@
 {
-  "title": "Literki"
+  "title": "Letties",
+  "logout": "Logout",
+  "login": {
+    "welcome": "Welcome to Letties",
+    "span": "Enter your nickname to join the game",
+    "name": "Username",
+    "loggingIn": "Logging in...",
+    "join": "JOIN GAME"
+  },
+  "overview": {
+    "id": "ID",
+    "availableGames": "Available Rooms",
+    "loadingLobbies": "Fetching game list",
+    "noLobbies": "No active games. Be the first one!",
+    "createNew": "CREATE NEW GAME",
+    "status": "Status",
+    "players": "Players",
+    "join": "JOIN",
+    "states": {
+      "Lobby": "In lobby",
+      "Game": "In progress",
+      "PostGame": "Game finished"
+    }
+  },
+  "chat": {
+    "placeholder": "Type a message...",
+    "noMessages": "Chat is empty... say hi!"
+  },
+  "lobby": {
+    "takeSeat": "Take seat",
+    "spectators": "Spectators",
+    "leave": "Leave lobby",
+    "startGame": "Start Game"
+  }
 }

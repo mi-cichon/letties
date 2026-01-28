@@ -1,2 +1,22 @@
-<p class="header">{{ 'title' | transloco }}</p>
-<router-outlet></router-outlet>
+<header class="main-header">
+  <p class="title" routerLink="/overview" style="cursor: pointer">{{ 'title' | transloco }}</p>
+
+  <div class="header-right">
+    <div class="lang-switcher">
+      <button [class.active]="activeLang() === 'pl'" (click)="setLang('pl')">PL</button>
+      <span class="divider">|</span>
+      <button [class.active]="activeLang() === 'en'" (click)="setLang('en')">EN</button>
+    </div>
+
+    @if ($initiateLoginHub() && loginHubService.loggedIn()) {
+      <button class="logout-btn" (click)="loginHubService.logout()">
+        {{ 'logout' | transloco }}
+      </button>
+    }
+  </div>
+</header>
+@if ($initiateLoginHub()) {
+  <router-outlet></router-outlet>
+} @else {
+  <app-loading-spinner></app-loading-spinner>
+}

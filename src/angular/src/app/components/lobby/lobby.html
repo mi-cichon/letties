@@ -1,0 +1,52 @@
+<div class="lobby-container">
+  <div class="lobby-main">
+    <header class="lobby-header">
+      <div class="title-section">
+        <h1>{{ lobbyId() | lobbyName }}</h1>
+      </div>
+      <div class="status-info">
+        <span class="player-count">
+          {{ 'overview.players' | transloco }}: {{ lobbyState()?.players?.length || 0 }}
+        </span>
+      </div>
+    </header>
+
+    <div class="seats-layout">
+      <div class="seats-grid">
+        @for (seat of sortedSeats(); track seat.seatId) {
+          <div class="seat-card" [class.occupied]="seat.playerId">
+            <div class="seat-header">
+              <span class="seat-num">#{{ seat.order }}</span>
+              @if (seat.isAdmin) {
+                <span class="admin-icon" title="Host">👑</span>
+              }
+            </div>
+
+            <div class="seat-content">
+              @if (seat.playerId) {
+                <span class="player-name">{{ getPlayerName(seat.playerId) }}</span>
+              } @else {
+                <button class="join-seat-btn" (click)="onTakeSeat(seat.seatId!)">
+                  {{ 'lobby.takeSeat' | transloco }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="spectators-section">
+      <h3>{{ 'lobby.spectators' | transloco }}</h3>
+      <div class="spectators-list">
+        @for (p of getSpectators(); track p.playerId) {
+          <span class="spectator-tag">{{ p.playerName }}</span>
+        }
+      </div>
+    </div>
+  </div>
+
+  <aside class="lobby-sidebar">
+    <app-chat [messages]="chatMessages()" (onSendMessage)="handleSendMessage($event)"> </app-chat>
+  </aside>
+</div>

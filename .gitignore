@@ -85,3 +85,6 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Generated API clients
+src/angular/src/app/api

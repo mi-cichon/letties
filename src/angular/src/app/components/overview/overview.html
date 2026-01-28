@@ -1,0 +1,56 @@
+<div class="overview-container">
+  <div class="header-actions">
+    <h2>{{ 'overview.availableGames' | transloco }}</h2>
+    <button class="refresh-btn" (click)="refresh()" [class.spinning]="lobbiesResource.isLoading()">
+      ↻
+    </button>
+  </div>
+
+  <div class="table-wrapper">
+    @if (lobbiesResource.isLoading()) {
+      <app-loading-spinner />
+    } @else if (lobbiesResource.value()?.length === 0) {
+      <div class="empty-state">
+        <p>{{ 'overview.noLobbies' | transloco }}</p>
+        <button class="create-btn">{{ 'overview.createNew' | transloco }}</button>
+      </div>
+    } @else {
+      <table class="lobby-table">
+        <thead>
+          <tr>
+            <th>{{ 'overview.id' | transloco }}</th>
+            <th>{{ 'overview.status' | transloco }}</th>
+            <th>{{ 'overview.players' | transloco }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (lobby of lobbiesResource.value(); track lobby.lobbyId) {
+            <tr class="lobby-row">
+              <td class="id-cell">
+                <span>{{ lobby.lobbyId | lobbyName }}</span>
+              </td>
+              <td>
+                <span class="status-badge" [attr.data-state]="lobby.state">
+                  {{ 'overview.states.' + lobby.state | transloco }}
+                </span>
+              </td>
+              <td class="player-count">
+                <span class="count">{{ lobby.playerCount }}</span>
+              </td>
+              <td class="actions-cell">
+                <button
+                  class="join-btn"
+                  (click)="joinLobby(lobby.lobbyId)"
+                  [disabled]="lobby.playerCount === 4"
+                >
+                  {{ 'overview.join' | transloco }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

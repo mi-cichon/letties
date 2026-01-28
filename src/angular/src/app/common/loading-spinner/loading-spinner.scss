@@ -1,0 +1,68 @@
+:host {
+  --base-size: 1.4rem;
+  --radius: 2.4rem;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  position: relative;
+}
+
+.scrabble-circle {
+  position: relative;
+  width: calc(var(--radius) * 2);
+  height: calc(var(--radius) * 2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tile {
+  width: var(--base-size);
+  height: var(--base-size);
+  position: absolute;
+
+  --angle: calc(var(--i) * (360deg / 7));
+  left: calc(50% + var(--radius) * cos(var(--angle)) - (var(--base-size) / 2));
+  top: calc(50% + var(--radius) * sin(var(--angle)) - (var(--base-size) / 2));
+
+  background-color: #e2c08d;
+  border-radius: calc(var(--base-size) * 0.08);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: calc(var(--base-size) * 0.5);
+  font-weight: bold;
+  color: #333;
+  box-shadow: 0 calc(var(--base-size) * 0.06) 0 #b08d57;
+
+  opacity: 0;
+  animation: tile-pop 2.5s infinite;
+  animation-delay: calc(var(--i) * 0.2s);
+}
+
+.tile span {
+  position: absolute;
+  bottom: 8%;
+  right: 8%;
+  font-size: calc(var(--base-size) * 0.2);
+}
+
+@keyframes tile-pop {
+  0%,
+  15% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  30%,
+  70% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  85%,
+  100% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+}

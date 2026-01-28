@@ -1,7 +1,83 @@
-.header {
-  width: 100%;
-  text-align: center;
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  font-family: 'Nunito', sans-serif;
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: rgba(30, 30, 30, 0.8);
+
+  .title {
+    margin: 0;
+    font-weight: bold;
+    color: #e2c08d;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .lang-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+
+    button {
+      background: none;
+      border: none;
+      color: #666; // Przygaszony nieaktywny
+      cursor: pointer;
+      padding: 2px 4px;
+      transition: all 0.3s ease;
+      letter-spacing: 1px;
+
+      &:hover {
+        color: #aaa;
+      }
+
+      &.active {
+        color: #e2c08d; // Twój złoty kolor
+        text-shadow: 0 0 8px rgba(226, 192, 141, 0.4);
+      }
+    }
+
+    .divider {
+      color: #333;
+      user-select: none;
+    }
+  }
+}
+
+.logout-btn {
+  background: transparent;
+  border: 1px solid #555;
+  color: #888;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  border: 1px solid #444;
+  background: rgba(255, 255, 255, 0.03);
+
+  &:hover {
+    border-color: #e2c08d;
+    color: #e2c08d;
+    background: rgba(226, 192, 141, 0.1);
+  }
+
+  .icon {
+    font-size: 1.2rem;
+    line-height: 1;
+  }
 }

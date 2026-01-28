@@ -1,6 +1,10 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebGame", "WebGame\WebGame.csproj", "{B8BF0624-9558-48D4-AAD1-C6BA3EBB1706}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebGame.Api", "WebGame.Api\WebGame.Api.csproj", "{B8BF0624-9558-48D4-AAD1-C6BA3EBB1706}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebGame.Domain", "WebGame.Domain\WebGame.Domain.csproj", "{36F02588-85CD-4CBD-87E9-A972DA907D4B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebGame.Application", "WebGame.Application\WebGame.Application.csproj", "{E728EAA8-AA86-4A91-A880-C7B92683F184}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,5 +16,13 @@ Global
 		{B8BF0624-9558-48D4-AAD1-C6BA3EBB1706}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B8BF0624-9558-48D4-AAD1-C6BA3EBB1706}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B8BF0624-9558-48D4-AAD1-C6BA3EBB1706}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36F02588-85CD-4CBD-87E9-A972DA907D4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36F02588-85CD-4CBD-87E9-A972DA907D4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36F02588-85CD-4CBD-87E9-A972DA907D4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36F02588-85CD-4CBD-87E9-A972DA907D4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E728EAA8-AA86-4A91-A880-C7B92683F184}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E728EAA8-AA86-4A91-A880-C7B92683F184}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E728EAA8-AA86-4A91-A880-C7B92683F184}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E728EAA8-AA86-4A91-A880-C7B92683F184}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
