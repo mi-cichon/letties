@@ -1,5 +1,5 @@
 @if (gameState(); as state) {
-  <div class="game-layout animate-in">
+  <div class="game-layout animate-in" cdkDropListGroup>
     <aside class="game-sidebar">
       <div class="sidebar-header">
         <h2>Amber Raven</h2>
@@ -42,8 +42,11 @@
             <div
               class="cell"
               [class]="'cell-type-' + cell.type"
-              [class.selectable]="!!selectedTileId() && !placedTile"
-              (click)="onCellClick(cell.id!)"
+              cdkDropList
+              [cdkDropListDisabled]="!isMyTurn()"
+              [cdkDropListEnterPredicate]="canDropOnBoard"
+              [cdkDropListData]="cell.id!"
+              (cdkDropListDropped)="onDropToBoard($event)"
             >
               @if (!placedTile && !localTileId) {
                 <span class="cell-label">{{ cell.type! | cellLabel }}</span>
@@ -57,11 +60,13 @@
                   class="tile"
                   [class.placed]="!!placedTile"
                   [class.local]="!!localTileId"
-                  [class.perfect-match]="placedTile?.isPerfectMatch"
-                  [attr.data-color]="def?.color"
+                  [cdkDragDisabled]="!!placedTile"
+                  cdkDrag
+                  [cdkDragData]="localTileId"
                 >
                   <span class="letter">{{ def?.valueText }}</span>
                   <span class="points">{{ def?.basePoints }}</span>
+                  <div *cdkDragPlaceholder></div>
                 </div>
               }
             </div>
@@ -80,19 +85,24 @@
       }
 
       <div class="rack-container">
-        <div class="player-rack">
-          @for (tile of state.myHand?.tiles; track tile.tileId) {
+        <div
+          class="player-rack"
+          cdkDropList
+          orientation="horizontal"
+          cdkDropListOrientation="horizontal"
+          [cdkDropListData]="orderedHand()"
+          (cdkDropListDropped)="onDropToRack($event)"
+        >
+          @for (tile of orderedHand(); track tile.tileId) {
             @let def = tileDefsMap().get(tile.valueId!);
             @let isUsed = usedTileIds().has(tile.tileId!);
-            @let isSelected = selectedTileId() === tile.tileId;
 
             <div
               class="tile in-hand"
               [class.is-used]="isUsed"
-              [class.is-selected]="isSelected"
-              [class.is-my-turn]="isMyTurn()"
-              [attr.data-color]="def?.color"
-              (click)="onTileSelect(tile.tileId!)"
+              cdkDrag
+              [cdkDragData]="tile.tileId"
+              [cdkDragDisabled]="isUsed"
             >
               <span class="letter">{{ def?.valueText }}</span>
               <span class="points">{{ def?.basePoints }}</span>
