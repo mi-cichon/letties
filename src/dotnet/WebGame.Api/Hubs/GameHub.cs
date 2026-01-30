@@ -1,7 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SignalRSwaggerGen.Attributes;
+using WebGame.Domain.Interfaces.Games.Details;
+using WebGame.Domain.Interfaces.Games.Models;
 using WebGame.Domain.Interfaces.Lobbies;
+using WebGame.Domain.Interfaces.Lobbies.Details;
+using WebGame.Domain.Interfaces.Lobbies.Models;
 using WebGame.Extensions;
 
 namespace WebGame.Hubs;
@@ -37,13 +41,34 @@ public class GameHub(ILobbyManager lobbyManager) : Hub
     
     public async Task LeaveSeat()
     {
-        await lobbyManager.LeaveSeat(Context.ConnectionId, Context.GetPlayerId());
+        var playerId = Context.GetPlayerId();
+        await lobbyManager.LeaveSeat(Context.ConnectionId, playerId);
     }
     
     public async Task SendMessage(string message)
     {
         var username = Context.GetUsername();
         await lobbyManager.SendMessage(Context.ConnectionId, username, message);
+    }
+
+    public async Task UpdateLobbySettings(LobbySettingsModel settingsModel)
+    {
+        await lobbyManager.UpdateLobbySettings(Context.ConnectionId, Context.GetPlayerId(), settingsModel);
+    }
+
+    public async Task StartGame()
+    {
+        await lobbyManager.StartGame(Context.ConnectionId, Context.GetPlayerId());
+    }
+
+    public GameDetails GetGameDetails()
+    {
+        return lobbyManager.GetGameDetails(Context.ConnectionId, Context.GetPlayerId());
+    }
+
+    public MoveResult HandleMove(MoveRequestModel request)
+    {
+        return lobbyManager.HandleMove(Context.ConnectionId, Context.GetPlayerId(), request);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)

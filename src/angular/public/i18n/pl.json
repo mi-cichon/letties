@@ -31,6 +31,28 @@
     "takeSeat": "Zajmij miejsce",
     "spectators": "Widzowie",
     "leave": "Opuść lobby",
-    "startGame": "Rozpocznij grę"
+    "startGame": "Rozpocznij grę",
+    "gameSettings": "Ustawienia Rozgrywki",
+    "language": "Język słownika",
+    "timeBank": "Bank czasu",
+    "totalTiles": "Liczba kafelków",
+    "readyToStart": "Wszyscy gotowi? Czas na ruch!",
+    "adminTitle": "Panel Gospodarza",
+    "minutes": "min",
+    "tilesCount": "kafelków",
+    "settingsUpdated": "Ustawienia zostały zaktualizowane",
+    "needMorePlayers": "Wymaganych min. 2 graczy",
+    "boardType": "Rodzaj planszy",
+    "boardClassic": "Klasyczna",
+    "boardArena": "Arena",
+    "boardWildlands": "Pustkowia",
+    "errors": {
+      "TileNotInHand": "Nie masz tej litery w swojej ręce!",
+      "WrongTurn": "To nie jest Twój ruch. Poczekaj na swoją kolej.",
+      "CellOccupied": "To pole jest już zajęte.",
+      "InvalidWord": "Podane słowo nie istnieje w słowniku.",
+      "TilesNotConnected": "Twoje słowo musi stykać się z literami na planszy (lub środkiem).",
+      "TilesNotInline": "Litery muszą tworzyć jedną linię bez przerw."
+    }
   }
 }

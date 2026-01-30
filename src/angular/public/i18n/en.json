@@ -31,6 +31,28 @@
     "takeSeat": "Take seat",
     "spectators": "Spectators",
     "leave": "Leave lobby",
-    "startGame": "Start Game"
+    "startGame": "Start Game",
+    "gameSettings": "Game Settings",
+    "language": "Dictionary Language",
+    "timeBank": "Time Bank",
+    "totalTiles": "Total Tiles",
+    "readyToStart": "Everyone ready? Let's play!",
+    "adminTitle": "Host Panel",
+    "minutes": "min",
+    "tilesCount": "tiles",
+    "settingsUpdated": "Settings updated successfully",
+    "needMorePlayers": "Min. 2 players required",
+    "boardType": "Board Type",
+    "boardClassic": "Classic",
+    "boardArena": "Arena",
+    "boardWildlands": "Wildlands",
+    "errors": {
+      "TileNotInHand": "You don't have this tile in your hand!",
+      "WrongTurn": "It's not your turn. Please wait for your opponent.",
+      "CellOccupied": "This cell is already occupied.",
+      "InvalidWord": "The word provided does not exist in the dictionary.",
+      "TilesNotConnected": "Your tiles must be connected to letters on the board (or the center).",
+      "TilesNotInline": "Letters must form a single line without any gaps."
+    }
   }
 }

@@ -1,11 +1,18 @@
 ﻿using System.Collections.Concurrent;
 using WebGame.Application.Constants;
 using WebGame.Domain.Interfaces;
+using WebGame.Domain.Interfaces.Games;
+using WebGame.Domain.Interfaces.Games.Details;
+using WebGame.Domain.Interfaces.Games.Enums;
+using WebGame.Domain.Interfaces.Games.Models;
 using WebGame.Domain.Interfaces.Lobbies;
+using WebGame.Domain.Interfaces.Lobbies.Details;
+using WebGame.Domain.Interfaces.Lobbies.Enums;
+using WebGame.Domain.Interfaces.Lobbies.Models;
 
 namespace WebGame.Application.Lobbies;
 
-public class GameLobby(IGameContextService gameContextService) : IGameLobby
+public class GameLobby(IGameContextService gameContextService, IGameEngineFactory gameEngineFactory) : IGameLobby
 {
     private readonly ConcurrentDictionary<Guid, LobbyPlayer> _players = new();
     
@@ -14,7 +21,11 @@ public class GameLobby(IGameContextService gameContextService) : IGameLobby
     public int PlayerCount => _players.Count;
     
     public GameLobbyState State { get; private set; } = GameLobbyState.Lobby;
-
+    
+    private string LobbyGroupName => LobbyId.ToString("N");
+    
+    private ILetterGameEngine? GameEngine { get; set; }
+    
     private readonly ConcurrentDictionary<Guid, GameLobbySeat> _seats =
         new()
         {
@@ -24,16 +35,23 @@ public class GameLobby(IGameContextService gameContextService) : IGameLobby
             [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 4)
         };
 
-    private string LobbyGroupName => LobbyId.ToString("N");
+    #region Lobby State
+    
+    private LobbySettings _lobbySettings = new(10, GameLanguage.Polish, 100, BoardType.Classic);
+    
+    private static readonly (int Min, int Max) SettingsTileRange = (50, 200);
+    
+    private static readonly (int Min, int Max) SettingsTimeBankRange = (3, 60);
     
     public async Task<LobbyStateDetails> AssignPlayer(Guid playerId, string playerConnectionId, string playerName)
     {
         var lobbyPlayer = new LobbyPlayer(playerId, playerConnectionId, playerName);
         _players.TryAdd(playerId, lobbyPlayer);
+        
+        await UpdateGroupWithLobbyState();
         await gameContextService.AddToGroup(playerConnectionId, LobbyGroupName);
         await gameContextService.NotifyGroup(LobbyGroupName, $"{playerName} has joined the lobby.");
         
-        await SendToGroup(GameMethods.PlayerJoined, new PlayerJoined(playerId, playerName));
         
         var playerDetails = _players.Values.ToArray()
             .Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName))
@@ -43,7 +61,7 @@ public class GameLobby(IGameContextService gameContextService) : IGameLobby
             .Select(x => new LobbySeatDetails(x.Key, x.Value.PlayerId, x.Value.IsAdmin, x.Value.Order))
             .ToArray();
         
-        var currentState = new LobbyStateDetails(playerDetails, seatDetails, LobbyGroupName);
+        var currentState = new LobbyStateDetails(LobbyId, playerDetails, seatDetails, _lobbySettings, State);
         return currentState;
     }
 
@@ -66,6 +84,8 @@ public class GameLobby(IGameContextService gameContextService) : IGameLobby
         {
             playerSeat.Seat.PlayerId = null;
         }
+        
+        await UpdateGroupWithLobbyState();
     }
 
     public async Task SendMessage(string playerName, string message)
@@ -88,13 +108,10 @@ public class GameLobby(IGameContextService gameContextService) : IGameLobby
         if (currentSeat != null)
         {
             currentSeat.Seat.PlayerId = null;
-            var currentSeatModel = new LobbySeatDetails(currentSeat.SeatId, currentSeat.Seat.PlayerId, currentSeat.Seat.IsAdmin, currentSeat.Seat.Order);
-            await SendToGroup(GameMethods.PlayerLeftSeat, currentSeatModel);
         }
         
         seat.PlayerId = playerId;
-        var seatModel = new LobbySeatDetails(seatId, seat.PlayerId, seat.IsAdmin, seat.Order);
-        await SendToGroup(GameMethods.PlayerEnteredSeat, seatModel);
+        await UpdateGroupWithLobbyState();
         return true;
     }
 
@@ -102,23 +119,7 @@ public class GameLobby(IGameContextService gameContextService) : IGameLobby
     {
         var playerId = _players.SingleOrDefault(x => x.Value.PlayerConnectionId == connectionId).Key;
         
-        if (_players.TryRemove(playerId, out var lobbyPlayer))
-        {
-            await gameContextService.RemoveFromGroup(connectionId, LobbyGroupName);
-            await LeaveSeat(playerId);
-            await gameContextService.NotifyGroup(LobbyGroupName, $"{lobbyPlayer.PlayerName} has left the game.");
-        }
-        
-        var playerSeat = _seats.Select(x => new
-        {
-            SeatId = x.Key, 
-            Seat = x.Value
-        }).SingleOrDefault(x => x.Seat.PlayerId == playerId);
-
-        if (playerSeat != null)
-        {
-            playerSeat.Seat.PlayerId = null;
-        }
+        await LeaveLobby(playerId);
     }
     
     public async Task LeaveSeat(Guid playerId)
@@ -131,8 +132,7 @@ public class GameLobby(IGameContextService gameContextService) : IGameLobby
         }
         
         seat.Seat.PlayerId = null;
-        var seatDetails = new LobbySeatDetails(seat.SeatId, seat.Seat.PlayerId, seat.Seat.IsAdmin, seat.Seat.Order);
-        await SendToGroup(GameMethods.PlayerLeftSeat, seatDetails);
+        await UpdateGroupWithLobbyState();
     }
 
     public bool IsPlayerInLobby(Guid playerId)
@@ -141,8 +141,123 @@ public class GameLobby(IGameContextService gameContextService) : IGameLobby
         return lobbyPlayer != null;
     }
 
-    private async Task SendToGroup<T>(string method, T data)
+    public async Task UpdateLobbySettings(Guid playerId, LobbySettingsModel settingsModel)
     {
-        await gameContextService.SendToGroup(LobbyGroupName, method, data);
+        if (!IsPlayerLobbyAdmin(playerId))
+        {
+            throw new InvalidOperationException("Only lobby admins can update lobby settings.");
+        }
+
+        if (State != GameLobbyState.Lobby)
+        {
+            throw new InvalidOperationException("Lobby settings can only be updated while lobby is in lobby state.");
+        }
+        
+        if (!ValidateLobbySettings(settingsModel))
+        {
+            throw new InvalidOperationException("Invalid lobby settings.");
+        }
+        
+        _lobbySettings = new LobbySettings(settingsModel.TimeBank, settingsModel.Language, settingsModel.TilesCount, settingsModel.BoardType);
+        await UpdateGroupWithLobbyState();
+    }
+
+    private bool ValidateLobbySettings(LobbySettingsModel settingsModel)
+    {
+        if (settingsModel.TimeBank >= SettingsTimeBankRange.Max || settingsModel.TimeBank <= SettingsTimeBankRange.Min)
+        {
+            return false;
+        }
+        
+        if(settingsModel.TilesCount >= SettingsTileRange.Max || settingsModel.TilesCount <= SettingsTileRange.Min)
+        {
+            return false;
+        }
+
+        return true;
+    }
+    
+    #endregion
+    
+    #region Game State
+
+    public async Task StartGame(Guid playerId)
+    {
+        if (!IsPlayerLobbyAdmin(playerId))
+        {
+            throw new InvalidOperationException("Only lobby admins can start the game.");
+        }
+        
+        if (State != GameLobbyState.Lobby)
+        {
+            throw new InvalidOperationException("Game can only be started while lobby is in lobby state.");
+        }
+
+        if (_seats.Count(x => x.Value.PlayerId != null) < 2)
+        {
+            throw new InvalidOperationException("Not enough players to start the game.");
+        }
+        
+        State = GameLobbyState.Game;
+        
+        await gameContextService.NotifyGroup(LobbyGroupName, "Game has started.");
+        
+        GameEngine = gameEngineFactory.CreateEngine(
+            _lobbySettings, 
+            _players.Keys.ToList(), 
+            () => _ = UpdateGroupWithGameState());
+        
+        await UpdateGroupWithLobbyState();
+        await UpdateGroupWithGameState();
+    }
+
+    public MoveResult HandleMove(Guid playerId, MoveRequestModel moveRequest)
+    {
+        if (State != GameLobbyState.Game || GameEngine == null)
+        {
+            return new MoveResult(false, MoveErrors.WrongTurn, "Not your turn!");
+        }
+        
+        return GameEngine.HandleMove(playerId, moveRequest);
+    }
+
+    public GameDetails GetGameDetails(Guid playerId)
+    {
+        if (State != GameLobbyState.Game || GameEngine == null)
+        {
+            throw new InvalidOperationException("Game details can only be retrieved while game is in progress.");
+        }
+
+        return GameEngine.GetGameDetails(playerId);
+    }
+    
+    #endregion
+
+    private bool IsPlayerLobbyAdmin(Guid playerId)
+    {
+        return _seats.Select(x => new {Seat = x.Value}).FirstOrDefault(x => x.Seat.PlayerId == playerId)?.Seat.IsAdmin ?? false;
+    }
+
+    private async Task UpdateGroupWithLobbyState()
+    {
+        var playerDetails = _players.Values.ToArray()
+            .Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName))
+            .ToArray();
+        
+        var seatDetails = _seats
+            .Select(x => new LobbySeatDetails(x.Key, x.Value.PlayerId, x.Value.IsAdmin, x.Value.Order))
+            .ToArray();
+        
+        var currentState = new LobbyStateDetails(LobbyId, playerDetails, seatDetails, _lobbySettings, State);
+        
+        await gameContextService.SendToGroup(LobbyGroupName, GameMethods.LobbyUpdated, currentState);
+    }
+
+    private async Task UpdateGroupWithGameState()
+    {
+        var updateTasks = _players.Select(x => gameContextService.SendToPlayer(x.Value.PlayerConnectionId,
+            GameMethods.GameUpdated, GameEngine!.GetGameDetails(x.Key)));
+        
+        await Task.WhenAll(updateTasks);
     }
 }

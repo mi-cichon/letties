@@ -20,7 +20,7 @@ export const routes: Routes = [
   },
   {
     path: 'lobby/:id',
-    loadComponent: () => import('./components/lobby/lobby').then((m) => m.Lobby),
+    loadComponent: () => import('./components/hub/hub').then((m) => m.Hub),
     canActivate: [authorizationGuard],
   },
 ];

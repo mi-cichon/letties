@@ -1,5 +1,9 @@
 ﻿using System.Collections.Concurrent;
+using WebGame.Domain.Interfaces.Games.Details;
+using WebGame.Domain.Interfaces.Games.Models;
 using WebGame.Domain.Interfaces.Lobbies;
+using WebGame.Domain.Interfaces.Lobbies.Details;
+using WebGame.Domain.Interfaces.Lobbies.Models;
 
 namespace WebGame.Application.Lobbies;
 
@@ -72,7 +76,37 @@ public class LobbyManager(IEnumerable<IGameLobby> gameLobbies) : ILobbyManager
             await gameLobby.LeaveSeat(playerId);
         }
     }
-    
+
+    public async Task UpdateLobbySettings(string playerConnectionId, Guid playerId, LobbySettingsModel settingsModel)
+    {
+        if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
+        {
+            await gameLobby.UpdateLobbySettings(playerId, settingsModel);
+        }
+    }
+
+    public GameDetails GetGameDetails(string playerConnectionId, Guid playerId)
+    {
+        return _playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby) 
+            ? gameLobby.GetGameDetails(playerId)
+            : throw new InvalidOperationException("Player is not in a lobby.");
+    }
+
+    public async Task StartGame(string playerConnectionId, Guid playerId)
+    {
+        if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
+        {
+            await gameLobby.StartGame(playerId);
+        }
+    }
+
+    public MoveResult HandleMove(string playerConnectionId, Guid playerId, MoveRequestModel request)
+    {
+        return _playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby) 
+            ? gameLobby.HandleMove(playerId, request)
+            : throw new InvalidOperationException("Player is not in a lobby.");
+    }
+
     private IGameLobby? GetLobbyById(Guid lobbyId)
     {
         return gameLobbies.FirstOrDefault(lobby => lobby.LobbyId == lobbyId);

@@ -21,6 +21,11 @@ public class GameContextService(IHubContext<GameHub> hubContext)  : IGameContext
         await hubContext.Clients.Group(groupName).SendAsync(method, data);
     }
     
+    public async Task SendToPlayer<T>(string playerConnectionId, string method, T data)
+    {
+        await hubContext.Clients.Client(playerConnectionId).SendAsync(method, data);
+    }
+    
     public async Task NotifyGroup(string groupId, string message)
     {
         await hubContext.Clients.Group(groupId).SendAsync(GameMethods.ReceiveMessage, "Server", message);

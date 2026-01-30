@@ -1,0 +1,118 @@
+@if (gameState(); as state) {
+  <div class="game-layout animate-in">
+    <aside class="game-sidebar">
+      <div class="sidebar-header">
+        <h2>Amber Raven</h2>
+        <div class="bag-card">
+          <span class="icon">🎒</span>
+          <div class="bag-details">
+            <span class="label">Worek</span>
+            <span class="count">{{ state.tilesRemainingInBag }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="scores-container">
+        @for (score of state.scores; track score.playerId) {
+          <div class="player-card" [class.active]="score.playerId === state.currentTurnPlayerId">
+            <div class="player-avatar">
+              {{ score.playerId! | playerName: players() | slice: 0 : 1 }}
+            </div>
+            <div class="player-info">
+              <span class="name">{{ score.playerId! | playerName: players() }}</span>
+              <span class="score-val">{{ score.totalPoints }} pkt</span>
+            </div>
+            <div class="hand-indicator">🎴 {{ score.tilesRemainingInHand }}</div>
+          </div>
+        }
+      </div>
+    </aside>
+
+    <main class="board-area">
+      <div
+        class="board-wrapper"
+        [style.--grid-cols]="state.layout?.width || 15"
+        [style.--grid-rows]="state.layout?.height || 15"
+      >
+        <div class="board">
+          @for (cell of state.layout!.cells; track cell.id) {
+            @let placedTile = placedTilesMap().get(cell.id!);
+            @let localTileId = localPlacements().get(cell.id!);
+
+            <div
+              class="cell"
+              [class]="'cell-type-' + cell.type"
+              [class.selectable]="!!selectedTileId() && !placedTile"
+              (click)="onCellClick(cell.id!)"
+            >
+              @if (!placedTile && !localTileId) {
+                <span class="cell-label">{{ cell.type! | cellLabel }}</span>
+              }
+
+              @if (placedTile || localTileId) {
+                @let vId = placedTile?.valueId || getTileValueIdFromHand(localTileId!);
+                @let def = tileDefsMap().get(vId!);
+
+                <div
+                  class="tile"
+                  [class.placed]="!!placedTile"
+                  [class.local]="!!localTileId"
+                  [class.perfect-match]="placedTile?.isPerfectMatch"
+                  [attr.data-color]="def?.color"
+                >
+                  <span class="letter">{{ def?.valueText }}</span>
+                  <span class="points">{{ def?.basePoints }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </main>
+
+    <footer class="hand-section">
+      @if (lastError(); as error) {
+        <div class="move-error-popup animate-bounce-in">
+          <span class="icon">⚠️</span>
+          <span class="message">{{ 'lobby.errors.' + error | transloco }}</span>
+          <button class="close-btn" (click)="lastError.set(null)">×</button>
+        </div>
+      }
+
+      <div class="rack-container">
+        <div class="player-rack">
+          @for (tile of state.myHand?.tiles; track tile.tileId) {
+            @let def = tileDefsMap().get(tile.valueId!);
+            @let isUsed = usedTileIds().has(tile.tileId!);
+            @let isSelected = selectedTileId() === tile.tileId;
+
+            <div
+              class="tile in-hand"
+              [class.is-used]="isUsed"
+              [class.is-selected]="isSelected"
+              [class.is-my-turn]="isMyTurn()"
+              [attr.data-color]="def?.color"
+              (click)="onTileSelect(tile.tileId!)"
+            >
+              <span class="letter">{{ def?.valueText }}</span>
+              <span class="points">{{ def?.basePoints }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-reset" (click)="resetLocalMove()">Reset</button>
+          <button
+            class="btn-submit"
+            [disabled]="state.currentTurnPlayerId !== myId()"
+            (click)="submitMove()"
+          >
+            Graj
+          </button>
+        </div>
+      </div>
+    </footer>
+  </div>
+} @else {
+  <app-loading-spinner />
+}

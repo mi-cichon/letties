@@ -1,0 +1,28 @@
+<div class="lobby-container">
+  <div class="lobby-main">
+    @if (lobbyId() && lobbyState()) {
+      @switch (lobbyState()?.state) {
+        @case (gameLobbyState.Lobby) {
+          <header class="lobby-header">
+            <div class="title-section">
+              <h1>{{ lobbyId() | lobbyName }}</h1>
+            </div>
+          </header>
+          <app-lobby [lobbyId]="lobbyId()!" />
+        }
+        @case (gameLobbyState.Game) {
+          <app-game [lobbyId]="lobbyId()!" [players]="lobbyState()?.players!" />
+        }
+        @default {
+          <app-loading-spinner />
+        }
+      }
+    } @else {
+      <app-loading-spinner />
+    }
+  </div>
+
+  <aside class="lobby-sidebar">
+    <app-chat [messages]="chatMessages()" (onSendMessage)="handleSendMessage($event)"> </app-chat>
+  </aside>
+</div>

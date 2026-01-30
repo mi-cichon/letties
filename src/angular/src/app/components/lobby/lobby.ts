@@ -1,30 +1,20 @@
-import { Component, inject, signal, OnInit, OnDestroy, computed } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { ChatMessage, GameHubService } from '../../services/game-hub-service';
-import { LobbyNamePipe } from '../overview/pipes/lobby-name.pipe';
+import { Component, inject, signal, OnInit, OnDestroy, computed, input } from '@angular/core';
+import { GameHubService } from '../../services/game-hub-service';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { Chat } from '../chat/chat';
-import { firstValueFrom, scan } from 'rxjs';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { getPlayerId } from '../../core/utils/token-utils';
+import { BoardType, GameLanguage } from '../../api';
 
 @Component({
   selector: 'app-lobby',
   templateUrl: './lobby.html',
   styleUrl: './lobby.scss',
-  imports: [LobbyNamePipe, TranslocoPipe, Chat],
+  imports: [TranslocoPipe],
 })
-export class Lobby implements OnInit, OnDestroy {
-  private route = inject(ActivatedRoute);
+export class Lobby {
   private gameHubService = inject(GameHubService);
 
-  public lobbyId = signal<string | null>(null);
+  public lobbyId = input.required<string>();
   public lobbyState = this.gameHubService.lobbyState.asReadonly();
-  public chatMessages = toSignal(
-    this.gameHubService.chatMessages$.pipe(
-      scan((acc, curr) => [...acc, curr], [] as ChatMessage[]),
-    ),
-    { initialValue: [] },
-  );
 
   public sortedSeats = computed(() => {
     const state = this.lobbyState();
@@ -32,25 +22,27 @@ export class Lobby implements OnInit, OnDestroy {
     return [...state.seats].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   });
 
-  async ngOnInit() {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.lobbyId.set(id);
+  public gameLanguage = GameLanguage;
+  public boardType = BoardType;
+  public parseInt = parseInt;
 
-      try {
-        console.log('Joining lobby');
-        await this.gameHubService.joinLobby(id);
-      } catch (err) {
-        console.error('Failed to join lobby', err);
-      }
-    }
-  }
+  public myId = signal<string>(getPlayerId());
 
-  ngOnDestroy(): void {
-    this.gameHubService
-      .leaveLobby()
-      .catch((err) => console.error('Failed to leave lobby on destroy', err));
-  }
+  public amIAdmin = computed(() => {
+    const state = this.lobbyState();
+    if (!state?.seats) return false;
+
+    const firstSeat = state.seats.find((s) => s.order === 1);
+    return firstSeat?.playerId === this.myId();
+  });
+
+  public seatedPlayersCount = computed(() => {
+    return this.lobbyState()?.seats?.filter((s) => s.playerId !== null).length ?? 0;
+  });
+
+  public canStartGame = computed(() => {
+    return this.amIAdmin() && this.seatedPlayersCount() >= 2;
+  });
 
   getPlayerName(playerId: string): string {
     const player = this.lobbyState()?.players?.find((p) => p.playerId === playerId);
@@ -62,11 +54,23 @@ export class Lobby implements OnInit, OnDestroy {
     return this.lobbyState()?.players?.filter((p) => !seatedPlayerIds.includes(p.playerId)) || [];
   }
 
-  async handleSendMessage(message: string) {
-    await this.gameHubService.sendMessage(message);
-  }
-
   async onTakeSeat(seatId: string) {
     await this.gameHubService.enterSeat(seatId);
+  }
+
+  async updateSetting(key: string, value: any) {
+    const currentSettings = this.lobbyState()?.settings;
+    const newSettings = {
+      ...currentSettings,
+      [key]: value,
+    };
+    console.info(newSettings);
+    if (currentSettings) {
+      await this.gameHubService.updateSettings(newSettings);
+    }
+  }
+
+  async onStartGame() {
+    await this.gameHubService.startGame();
   }
 }

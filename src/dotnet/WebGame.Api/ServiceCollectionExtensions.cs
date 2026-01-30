@@ -3,9 +3,13 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using WebGame.Application.Games;
+using WebGame.Application.Languages;
 using WebGame.Application.Lobbies;
 using WebGame.Application.Services;
 using WebGame.Domain.Interfaces;
+using WebGame.Domain.Interfaces.Games;
+using WebGame.Domain.Interfaces.Languages;
 using WebGame.Domain.Interfaces.Lobbies;
 using WebGame.Hubs;
 
@@ -25,10 +29,22 @@ public static class ServiceCollectionExtensions
     {
         public IServiceCollection AddServices()
         {
-            return services
+            services
                 .AddSingleton<ILobbyManager, LobbyManager>()
                 .AddTransient<IGameContextService, GameContextService>()
                 .AddTransient<IAuthorizationService, AuthorizationService>();
+
+            services
+                .AddSingleton<IGameLanguageProviderFactory, GameLanguageProviderFactory>()
+                .AddSingleton<IGameLanguageProvider, EnglishLanguageProvider>()
+                .AddSingleton<IGameLanguageProvider, PolishLanguageProvider>();
+
+            services
+                .AddSingleton<IGameEngineFactory, GameEngineFactory>()
+                .AddSingleton<IBoardGenerator, BoardGenerator>();
+            
+            
+            return services;
         }
 
         public IServiceCollection AddGameLobbies(IConfiguration configuration)

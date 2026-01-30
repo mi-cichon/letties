@@ -2,7 +2,17 @@ import { inject, Injectable, signal, WritableSignal } from '@angular/core';
 import { Router } from '@angular/router';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { getGameHubUrl } from '../core/utils/api-url-builder';
-import { GameLobbyItem, JoinResponse, LobbySeatDetails, LobbyStateDetails } from '../api';
+import {
+  GameDetails,
+  GameLobbyItem,
+  GameLobbyState,
+  JoinResponse,
+  LobbySeatDetails,
+  LobbySettingsModel,
+  LobbyStateDetails,
+  MoveRequestModel,
+  MoveResult,
+} from '../api';
 import { getJwtToken } from '../core/utils/token-utils';
 import { Subject } from 'rxjs';
 
@@ -19,6 +29,7 @@ export class GameHubService {
   public chatMessages$ = this.chatMessageSubject.asObservable();
 
   public lobbyState: WritableSignal<LobbyStateDetails | null> = signal(null);
+  public gameState: WritableSignal<GameDetails | null> = signal(null);
 
   public async initGameConnection(): Promise<boolean> {
     this.hubConnection = new HubConnectionBuilder()
@@ -55,8 +66,15 @@ export class GameHubService {
       this.chatMessageSubject.next(newMessage);
     });
 
-    this.hubConnection.on('PlayerEnteredSeat', (s) => this.updateSeatInState(s));
-    this.hubConnection.on('PlayerLeftSeat', (s) => this.updateSeatInState(s));
+    this.hubConnection.on('LobbyUpdated', (lobbyState: LobbyStateDetails) => {
+      this.lobbyState.set(lobbyState);
+      console.info('Lobby updated', lobbyState);
+    });
+
+    this.hubConnection.on('GameUpdated', (gameState: GameDetails) => {
+      this.gameState.set(gameState);
+      console.info('Game updated', gameState);
+    });
   }
 
   public getLobbies(): Promise<GameLobbyItem[]> {
@@ -119,15 +137,42 @@ export class GameHubService {
     }
   }
 
-  private updateSeatInState(seatUpdate: LobbySeatDetails) {
-    console.log('seat updated', seatUpdate);
-    this.lobbyState.update((state) => {
-      if (!state) return null;
-      return {
-        ...state,
-        seats: state.seats!.map((s) => (s.seatId === seatUpdate.seatId ? seatUpdate : s)),
-      };
-    });
+  public async updateSettings(settingsModel: LobbySettingsModel): Promise<void> {
+    try {
+      return await this.hubConnection.invoke('UpdateLobbySettings', settingsModel);
+    } catch (err) {
+      console.error('Error invoking LeaveSeat: ', err);
+      return await Promise.reject();
+    }
+  }
+
+  public async startGame(): Promise<void> {
+    try {
+      return await this.hubConnection.invoke('StartGame');
+    } catch (err) {
+      console.error('Error invoking StartGame: ', err);
+      return await Promise.reject();
+    }
+  }
+
+  public async getGameDetails(): Promise<void> {
+    try {
+      const details = await this.hubConnection.invoke('GetGameDetails');
+      console.info('Game details updated:', details);
+      this.gameState.set(details);
+    } catch (err) {
+      console.error('Error invoking GetGameDetails: ', err);
+      return await Promise.reject();
+    }
+  }
+
+  public async handleMove(request: MoveRequestModel): Promise<MoveResult> {
+    try {
+      return await this.hubConnection.invoke('HandleMove', request);
+    } catch (err) {
+      console.error('Error invoking HandleMove: ', err);
+      return await Promise.reject();
+    }
   }
 }
 
