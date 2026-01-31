@@ -70,6 +70,16 @@ public class GameHub(ILobbyManager lobbyManager) : Hub
     {
         return lobbyManager.HandleMove(Context.ConnectionId, Context.GetPlayerId(), request);
     }
+    
+    public void SwapTiles(List<Guid> tileIdsToSwap)
+    {
+        lobbyManager.HandleSwapTile(Context.ConnectionId, Context.GetPlayerId(), tileIdsToSwap);
+    }
+    
+    public void SkipTurn()
+    {
+        lobbyManager.HandleSkipTurn(Context.ConnectionId, Context.GetPlayerId());
+    }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {

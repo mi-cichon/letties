@@ -46,6 +46,12 @@
     "boardClassic": "Classic",
     "boardArena": "Arena",
     "boardWildlands": "Wildlands",
+    "bag": "In bag",
+    "cancel": "Cancel",
+    "swap": "Swap",
+    "reset": "Reset",
+    "play": "Play",
+    "skip": "Skip turn",
     "errors": {
       "TileNotInHand": "You don't have this tile in your hand!",
       "WrongTurn": "It's not your turn. Please wait for your opponent.",

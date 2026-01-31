@@ -107,6 +107,22 @@ public class LobbyManager(IEnumerable<IGameLobby> gameLobbies) : ILobbyManager
             : throw new InvalidOperationException("Player is not in a lobby.");
     }
 
+    public void HandleSwapTile(string playerConnectionId, Guid playerId, List<Guid> tileIdsToSwap)
+    {
+        if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
+        {
+            gameLobby.HandleSwapTiles(playerId, tileIdsToSwap);
+        }
+    }
+    
+    public void HandleSkipTurn(string playerConnectionId, Guid playerId)
+    {
+        if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
+        {
+            gameLobby.HandleSkipTurn(playerId);
+        }
+    }
+
     private IGameLobby? GetLobbyById(Guid lobbyId)
     {
         return gameLobbies.FirstOrDefault(lobby => lobby.LobbyId == lobbyId);

@@ -18,4 +18,6 @@ public interface ILobbyManager
     GameDetails GetGameDetails(string playerConnectionId, Guid playerId);
     Task StartGame(string playerConnectionId, Guid playerId);
     MoveResult HandleMove(string playerConnectionId, Guid playerId, MoveRequestModel request);
+    void HandleSwapTile(string playerConnectionId, Guid playerId, List<Guid> tileIdsToSwap);
+    void HandleSkipTurn(string playerConnectionId, Guid playerId);
 }

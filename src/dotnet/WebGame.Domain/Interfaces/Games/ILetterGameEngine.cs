@@ -7,4 +7,6 @@ public interface ILetterGameEngine
 {
     GameDetails GetGameDetails(Guid requestingPlayerId);
     MoveResult HandleMove(Guid playerId, MoveRequestModel request);
+    void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap);
+    void HandleSkipTurn(Guid playerId);
 }

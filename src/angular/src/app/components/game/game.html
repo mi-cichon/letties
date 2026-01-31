@@ -2,11 +2,11 @@
   <div class="game-layout animate-in" cdkDropListGroup>
     <aside class="game-sidebar">
       <div class="sidebar-header">
-        <h2>Amber Raven</h2>
+        <h2>{{ lobbyId() | lobbyName }}</h2>
         <div class="bag-card">
           <span class="icon">🎒</span>
           <div class="bag-details">
-            <span class="label">Worek</span>
+            <span class="label">{{ 'lobby.bag' | transloco }}</span>
             <span class="count">{{ state.tilesRemainingInBag }}</span>
           </div>
         </div>
@@ -73,55 +73,70 @@
           }
         </div>
       </div>
-    </main>
+      <footer class="hand-section">
+        @if (lastError(); as error) {
+          <div class="move-error-popup animate-bounce-in">
+            <span class="icon">⚠️</span>
+            <span class="message">{{ 'lobby.errors.' + error | transloco }}</span>
+            <button class="close-btn" (click)="lastError.set(null)">×</button>
+          </div>
+        }
 
-    <footer class="hand-section">
-      @if (lastError(); as error) {
-        <div class="move-error-popup animate-bounce-in">
-          <span class="icon">⚠️</span>
-          <span class="message">{{ 'lobby.errors.' + error | transloco }}</span>
-          <button class="close-btn" (click)="lastError.set(null)">×</button>
-        </div>
-      }
-
-      <div class="rack-container">
-        <div
-          class="player-rack"
-          cdkDropList
-          orientation="horizontal"
-          cdkDropListOrientation="horizontal"
-          [cdkDropListData]="orderedHand()"
-          (cdkDropListDropped)="onDropToRack($event)"
-        >
-          @for (tile of orderedHand(); track tile.tileId) {
-            @let def = tileDefsMap().get(tile.valueId!);
-            @let isUsed = usedTileIds().has(tile.tileId!);
-
-            <div
-              class="tile in-hand"
-              [class.is-used]="isUsed"
-              cdkDrag
-              [cdkDragData]="tile.tileId"
-              [cdkDragDisabled]="isUsed"
-            >
-              <span class="letter">{{ def?.valueText }}</span>
-              <span class="points">{{ def?.basePoints }}</span>
-            </div>
-          }
-        </div>
-
-        <div class="action-buttons">
-          <button class="btn-reset" (click)="resetLocalMove()">Reset</button>
-          <button
-            class="btn-submit"
-            [disabled]="state.currentTurnPlayerId !== myId()"
-            (click)="submitMove()"
+        <div class="rack-container">
+          <div
+            class="player-rack"
+            cdkDropList
+            orientation="horizontal"
+            cdkDropListOrientation="horizontal"
+            [cdkDropListData]="orderedHand()"
+            (cdkDropListDropped)="onDropToRack($event)"
           >
-            Graj
-          </button>
+            @for (tile of orderedHand(); track tile.tileId) {
+              @let def = tileDefsMap().get(tile.valueId!);
+              @let isUsed = usedTileIds().has(tile.tileId!);
+
+              <div
+                class="tile in-hand"
+                [class.is-used]="isUsed"
+                cdkDrag
+                [cdkDragData]="tile.tileId"
+                [cdkDragDisabled]="isUsed"
+                [class.selected-for-swap]="selectedTilesForSwap().has(tile.tileId)"
+                (click)="toggleTileSelection(tile.tileId)"
+              >
+                <span class="letter">{{ def?.valueText }}</span>
+                <span class="points">{{ def?.basePoints }}</span>
+              </div>
+            }
+          </div>
         </div>
-      </div>
-    </footer>
+      </footer>
+    </main>
+    <div class="action-buttons">
+      @if (isMyTurn()) {
+        @if (isSwapMode() && selectedTilesForSwap().size > 0) {
+          <button (click)="confirmSwap()" class="btn-confirm">
+            {{ 'lobby.swap' | transloco }}({{ selectedTilesForSwap().size }})
+          </button>
+        }
+        <button class="btn-swap" (click)="toggleSwapMode()" [class.active]="isSwapMode()">
+          {{ isSwapMode() ? ('lobby.cancel' | transloco) : ('lobby.swap' | transloco) }}
+        </button>
+        <button class="btn-skip" (click)="passTurn()">
+          {{ 'lobby.skip' | transloco }}
+        </button>
+        <button class="btn-reset" (click)="resetLocalMove()">
+          {{ 'lobby.reset' | transloco }}
+        </button>
+        <button
+          class="btn-submit"
+          [disabled]="state.currentTurnPlayerId !== myId()"
+          (click)="submitMove()"
+        >
+          {{ 'lobby.play' | transloco }}
+        </button>
+      }
+    </div>
   </div>
 } @else {
   <app-loading-spinner />

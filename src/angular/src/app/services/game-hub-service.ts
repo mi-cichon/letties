@@ -174,6 +174,24 @@ export class GameHubService {
       return await Promise.reject();
     }
   }
+
+  public async skipTurn(): Promise<void> {
+    try {
+      return await this.hubConnection.invoke('SkipTurn');
+    } catch (err) {
+      console.error('Error invoking SkipTurn: ', err);
+      return await Promise.reject();
+    }
+  }
+
+  public async swapTiles(request: string[]): Promise<void> {
+    try {
+      return await this.hubConnection.invoke('SwapTiles', request);
+    } catch (err) {
+      console.error('Error invoking SwapTiles: ', err);
+      return await Promise.reject();
+    }
+  }
 }
 
 export interface ChatMessage {

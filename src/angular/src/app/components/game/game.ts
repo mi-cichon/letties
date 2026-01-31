@@ -22,6 +22,7 @@ import {
   CdkDropList,
   CdkDropListGroup,
 } from '@angular/cdk/drag-drop';
+import { LobbyNamePipe } from '../overview/pipes/lobby-name.pipe';
 
 @Component({
   selector: 'app-game',
@@ -35,6 +36,7 @@ import {
     CdkDropList,
     CdkDropListGroup,
     CdkDragPlaceholder,
+    LobbyNamePipe,
   ],
   templateUrl: './game.html',
   styleUrl: './game.scss',
@@ -105,6 +107,9 @@ export class Game {
     return result;
   });
 
+  selectedTilesForSwap = signal<Set<string>>(new Set());
+  isSwapMode = signal<boolean>(false);
+
   getTileValueIdFromHand(tileId: string | null): string | undefined {
     if (!tileId) return undefined;
     return this.gameState()?.myHand?.tiles?.find((t) => t.tileId === tileId)?.valueId;
@@ -141,6 +146,8 @@ export class Game {
   }
 
   resetLocalMove() {
+    this.selectedTilesForSwap.set(new Set<string>());
+    this.isSwapMode.set(false);
     this.localPlacements.set(new Map());
     this.selectedTileId.set(null);
   }
@@ -154,6 +161,9 @@ export class Game {
     }));
 
     if (placements.length === 0) return;
+
+    this.selectedTilesForSwap.set(new Set<string>());
+    this.isSwapMode.set(false);
 
     const request: MoveRequestModel = { placements };
 
@@ -261,5 +271,45 @@ export class Game {
     newArray.splice(toIndex, 0, movedItem);
 
     return newArray;
+  }
+
+  toggleSwapMode() {
+    if (this.localPlacements().size > 0) {
+      return;
+    }
+    this.isSwapMode.update((v) => !v);
+    this.selectedTilesForSwap.set(new Set());
+  }
+
+  toggleTileSelection(tileId: string) {
+    if (!this.isSwapMode()) return;
+
+    this.selectedTilesForSwap.update((set) => {
+      const newSet = new Set(set);
+      if (newSet.has(tileId)) newSet.delete(tileId);
+      else newSet.add(tileId);
+      return newSet;
+    });
+  }
+
+  async confirmSwap() {
+    const tileIds = Array.from(this.selectedTilesForSwap());
+    if (tileIds.length === 0) return;
+
+    await this.gameHubService.swapTiles(tileIds);
+
+    this.selectedTilesForSwap.set(new Set<string>());
+    this.isSwapMode.set(false);
+  }
+
+  async passTurn() {
+    if (!this.isMyTurn()) {
+      return;
+    }
+
+    this.selectedTilesForSwap.set(new Set<string>());
+    this.isSwapMode.set(false);
+
+    await this.gameHubService.skipTurn();
   }
 }

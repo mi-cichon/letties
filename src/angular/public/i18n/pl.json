@@ -46,6 +46,12 @@
     "boardClassic": "Klasyczna",
     "boardArena": "Arena",
     "boardWildlands": "Pustkowia",
+    "bag": "W worku",
+    "cancel": "Anuluj",
+    "swap": "Wymień",
+    "reset": "Resetuj",
+    "play": "Graj",
+    "skip": "Omiń turę",
     "errors": {
       "TileNotInHand": "Nie masz tej litery w swojej ręce!",
       "WrongTurn": "To nie jest Twój ruch. Poczekaj na swoją kolej.",

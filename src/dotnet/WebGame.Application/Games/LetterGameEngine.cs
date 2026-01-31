@@ -104,6 +104,66 @@ public class LetterGameEngine : ILetterGameEngine
         return ExecuteMove(playerId, request.Placements, tilesToPlace);
     }
 
+public void HandleSkipTurn(Guid playerId)
+{
+    if (playerId != _currentTurnPlayerId)
+    {
+        throw new InvalidOperationException("Not your turn!");
+    }
+
+    RotateTurn();
+    NotifyStateChanged();
+}
+
+public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
+{
+    if (playerId != _currentTurnPlayerId)
+    {
+        throw new InvalidOperationException("Not your turn!");
+    }
+
+    if (tileIdsToSwap == null || !tileIdsToSwap.Any())
+    {
+        throw new InvalidOperationException("No tiles to swap.");
+    }
+
+    if (_tileBag.Count < 7)
+    {
+        throw new InvalidOperationException("Not enough tiles in bag to swap.");
+    }
+
+    var playerHand = _playerHands[playerId];
+    var tilesToReturn = new List<TileInstanceDetails>();
+
+    foreach (var tileId in tileIdsToSwap)
+    {
+        var tile = playerHand.FirstOrDefault(t => t.TileId == tileId);
+        if (tile == null)
+        {
+            throw new InvalidOperationException($"Tile with id {tileId} not found in player's hand.");
+        }
+        tilesToReturn.Add(tile);
+    }
+
+    foreach (var tile in tilesToReturn)
+    {
+        playerHand.Remove(tile);
+    }
+
+    var newTiles = DrawTiles(tilesToReturn.Count);
+    playerHand.AddRange(newTiles);
+
+    var bagList = _tileBag.ToList();
+    bagList.AddRange(tilesToReturn);
+
+    _tileBag.Clear();
+    var shuffled = bagList.OrderBy(_ => Guid.CreateVersion7());
+    foreach (var t in shuffled) _tileBag.Push(t);
+
+    RotateTurn();
+    NotifyStateChanged();
+}
+
     private MoveResult ExecuteMove(Guid playerId, List<TilePlacementModel> placements, List<TileInstanceDetails> tiles)
     {
         var proposedMoves = placements.Select(p =>

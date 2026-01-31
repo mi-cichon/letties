@@ -230,6 +230,26 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
 
         return GameEngine.GetGameDetails(playerId);
     }
+
+    public void HandleSkipTurn(Guid playerId)
+    {
+        if (State != GameLobbyState.Game || GameEngine == null)
+        {
+            throw new InvalidOperationException("Game details can only be retrieved while game is in progress.");
+        }
+        
+        GameEngine.HandleSkipTurn(playerId);
+    }
+
+    public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
+    {
+        if (State != GameLobbyState.Game || GameEngine == null)
+        {
+            throw new InvalidOperationException("Game details can only be retrieved while game is in progress.");
+        }
+        
+        GameEngine.HandleSwapTiles(playerId, tileIdsToSwap);
+    }
     
     #endregion
 

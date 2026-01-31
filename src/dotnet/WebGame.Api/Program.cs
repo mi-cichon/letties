@@ -24,12 +24,15 @@ builder.Services.AddGameLobbies(builder.Configuration);
 
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() 
+                     ?? ["http://localhost:4200"];
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: "Policy",
         policy  =>
         {
-            policy.WithOrigins("http://localhost:4200")
+            policy.WithOrigins(allowedOrigins)
                 .AllowCredentials()
                 .AllowAnyHeader()
                 .AllowAnyMethod();

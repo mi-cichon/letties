@@ -25,5 +25,7 @@ public interface IGameLobby
     Task StartGame(Guid playerId);
     GameDetails GetGameDetails(Guid playerId);
     MoveResult HandleMove(Guid playerId, MoveRequestModel moveRequest);
+    void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap);
+    void HandleSkipTurn(Guid playerId);
     #endregion
 }
