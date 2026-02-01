@@ -1,3 +1,118 @@
 :host {
-  display: block;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+  width: 100%;
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.post-game-container {
+  width: 100%;
+  max-width: 600px;
+  animation: fadeIn 0.5s ease-out;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2rem;
+
+    h1 {
+      margin: 0;
+      color: #e2c08d;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-size: 2.5rem;
+      text-shadow: 0 0 15px rgba(226, 192, 141, 0.3);
+    }
+
+    .timer-badge {
+      font-size: 0.9rem;
+      color: #888;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      border: 1px solid #333;
+
+      span {
+        color: #e2c08d;
+        font-weight: bold;
+      }
+    }
+  }
+}
+
+.leaderboard-card {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+  .player-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 120px;
+    padding: 1.2rem 1.5rem;
+    align-items: center;
+    border-bottom: 1px solid #2a2a2a;
+    transition: background 0.2s;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &.header-row {
+      color: #888;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    &.winner {
+      background: linear-gradient(90deg, rgba(226, 192, 141, 0.15), transparent);
+      .name {
+        color: #e2c08d;
+        font-size: 1.3rem;
+      }
+      .rank {
+        font-size: 1.5rem;
+      }
+      .points {
+        color: #e2c08d;
+        font-weight: bold;
+      }
+    }
+
+    .rank {
+      font-weight: bold;
+      color: #555;
+    }
+    .name {
+      font-weight: 500;
+      font-size: 1.1rem;
+    }
+    .points {
+      text-align: right;
+    }
+  }
+}
+
+.footer-info {
+  margin-top: 1.5rem;
+  text-align: center;
+  color: #444;
+  font-size: 0.85rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

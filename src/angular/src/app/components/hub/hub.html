@@ -13,6 +13,9 @@
         @case (gameLobbyState.Game) {
           <app-game [lobbyId]="lobbyId()!" [players]="lobbyState()?.players!" />
         }
+        @case (gameLobbyState.PostGame) {
+          <app-post-game />
+        }
         @default {
           <app-loading-spinner />
         }

@@ -17,10 +17,11 @@ import { GameLobbyState } from '../../api';
 import { Lobby } from '../lobby/lobby';
 import { LoadingSpinnerComponent } from '../../common/loading-spinner/loading-spinner';
 import { Game } from '../game/game';
+import { PostGame } from '../post-game/post-game';
 
 @Component({
   selector: 'app-hub',
-  imports: [LobbyNamePipe, Chat, Lobby, LoadingSpinnerComponent, Game],
+  imports: [LobbyNamePipe, Chat, Lobby, LoadingSpinnerComponent, Game, PostGame],
   templateUrl: './hub.html',
   styleUrl: './hub.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

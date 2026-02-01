@@ -1,1 +1,35 @@
-<p>post-game works!</p>,
+<div class="post-game-container">
+  <div class="header">
+    <h1>{{ 'postGame.title' | transloco }}</h1>
+    <div class="timer-badge">
+      {{ 'postGame.returningIn' | transloco }}: <span>{{ timeLeft() }}s</span>
+    </div>
+  </div>
+
+  <div class="leaderboard-card">
+    <div class="player-row header-row">
+      <span class="rank">#</span>
+      <span class="name">{{ 'postGame.player' | transloco }}</span>
+      <span class="points">{{ 'postGame.score' | transloco }}</span>
+    </div>
+
+    @for (player of sortedPlayers(); track player.playerId; let i = $index) {
+      <div class="player-row" [class.winner]="i === 0">
+        <span class="rank">
+          @if (i === 0) {
+            👑
+          } @else {
+            {{ i + 1 }}
+          }
+        </span>
+        <span class="name">{{ player.playerName }}</span>
+        <span class="points">{{ player.playerPoints }} p.</span>
+      </div>
+    }
+  </div>
+
+  <div class="footer-info">
+    {{ 'postGame.duration' | transloco }}:
+    {{ lobbyState()!.gameFinishedDetails!.gameDuration!.split('.')[0] }}
+  </div>
+</div>

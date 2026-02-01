@@ -60,5 +60,12 @@
       "TilesNotConnected": "Twoje słowo musi stykać się z literami na planszy (lub polem ⭐).",
       "TilesNotInline": "Litery muszą tworzyć jedną linię bez przerw."
     }
+  },
+  "postGame": {
+    "title": "Gra zakończona",
+    "returningIn": "Powrót za",
+    "player": "Gracz",
+    "score": "Wynik",
+    "duration": "Czas trwania gry"
   }
 }

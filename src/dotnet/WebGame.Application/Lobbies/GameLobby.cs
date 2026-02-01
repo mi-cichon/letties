@@ -30,7 +30,7 @@ public class GameLobby : IGameLobby
     
     private readonly Lock _sync = new();
 
-    private const int PostGameDurationSeconds = 1800;
+    private const int PostGameDurationSeconds = 30;
 
     private static readonly ConcurrentDictionary<Guid, GameLobbySeat> DefaultLobbySeats = new()
     {
@@ -80,7 +80,7 @@ public class GameLobby : IGameLobby
             .Select(x => new LobbySeatDetails(x.Key, x.Value.PlayerId, x.Value.IsAdmin, x.Value.Order))
             .ToArray();
         
-        var currentState = new LobbyStateDetails(LobbyId, playerDetails, seatDetails, _lobbySettings, State, null);
+        var currentState = new LobbyStateDetails(LobbyId, playerDetails, seatDetails, _lobbySettings, State, GameFinishedDetails);
 
         if (State == GameLobbyState.Game && GameEngine != null)
         {
