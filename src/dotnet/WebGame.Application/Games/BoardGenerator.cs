@@ -12,6 +12,7 @@ public class BoardGenerator : IBoardGenerator
             BoardType.Classic => GenerateFromTemplate(GetClassicTemplate()),
             BoardType.Arena => GenerateFromTemplate(GetArenaTemplate()),
             BoardType.Wildlands => GenerateFromTemplate(GetWildlandsTemplate()),
+            BoardType.Widelands => GenerateFromTemplate(GetWidelandsTemplate()),
             _ => throw new ArgumentException($"Unknown board type: {boardType}")
         };
     }
@@ -87,16 +88,41 @@ public class BoardGenerator : IBoardGenerator
     ];
 
     private static string[] GetWildlandsTemplate() => [
-        "3...T...T...3",
-        ".D...2.2...D.",
-        "..D...*...D..",
-        ".T.D.....D.T.",
-        "..2.D...D.2..",
-        "T..*..D..*..T",
-        "..2.D...D.2..",
-        ".T.D.....D.T.",
-        "..D...*...D..",
-        ".D...2.2...D.",
-        "3...T...T...3"
+        "3....T...T....3",
+        ".D...2...2...D.",
+        "..D....2....D..",
+        ".T.D...*...D.T.",
+        "...2.D...D.2...",
+        "T.....D.D.....T",
+        "...2.*...*.2...",
+        "3..D...*...D..3",
+        "...2.*...*.2...",
+        "T.....D.D.....T",
+        "...2.D...D.2...",
+        ".T.D...*...D.T.",
+        "..D....2....D..",
+        ".D...2...2...D.",
+        "3....T...T....3"
+    ];
+
+    private static string[] GetWidelandsTemplate() =>
+    [
+        "3..D....3....D..3",
+        ".2....T...T....2.",
+        "..2....D.D....2..",
+        "D..2....D....2..D",
+        "....2.......2....",
+        ".T....T...T....T.",
+        "..D....D.D....D..",
+        "..D....D.D....D..",
+        "3..D....*....D..3",
+        "..D....D.D....D..",
+        "..D....D.D....D..",
+        ".T....T...T....T.",
+        "....2.......2....",
+        "D..2....D....2..D",
+        "..2....D.D....2..",
+        ".2....T...T....2.",
+        "3..D....3....D..3"
     ];
 }

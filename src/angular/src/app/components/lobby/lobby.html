@@ -102,6 +102,12 @@
           >
             {{ 'lobby.boardWildlands' | transloco }}
           </button>
+          <button
+            [class.active]="lobbyState()?.settings?.boardType === boardType.Widelands"
+            (click)="updateSetting('boardType', boardType.Widelands)"
+          >
+            {{ 'lobby.boardWidelands' | transloco }}
+          </button>
         </div>
       </div>
     </div>

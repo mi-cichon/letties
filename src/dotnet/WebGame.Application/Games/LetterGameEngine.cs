@@ -34,6 +34,11 @@ public class LetterGameEngine : ILetterGameEngine
     private event Action<GameFinishedDetails>  OnGameFinished;
 
     private const int TimeBelowMinuteBonusSeconds = 30;
+    
+    private int _consecutiveScorelessTurns = 0;
+    private bool _gameFinished = false;
+    
+    private Lock _lock = new();
 
     public LetterGameEngine(
         IGameLanguageProviderFactory gameLanguageProviderFactory,
@@ -172,6 +177,9 @@ public class LetterGameEngine : ILetterGameEngine
         {
             throw new InvalidOperationException("Not your turn!");
         }
+        
+        HandleScorelessTurn();
+        
         var currentTurnStartedAt = _currentTurnStartedAt;
         RotateTurn();
         SubtractTime(playerId, currentTurnStartedAt, false);
@@ -223,6 +231,8 @@ public class LetterGameEngine : ILetterGameEngine
         _tileBag.Clear();
         var shuffled = bagList.OrderBy(_ => Guid.CreateVersion7());
         foreach (var t in shuffled) _tileBag.Push(t);
+        
+        HandleScorelessTurn();
 
         var currentTurnStartedAt = _currentTurnStartedAt;
         RotateTurn();
@@ -319,7 +329,20 @@ public class LetterGameEngine : ILetterGameEngine
         var newTiles = DrawTiles(placements.Count);
         _playerHands[playerId].Tiles.AddRange(newTiles);
         
-        var lastTurnStartTime = _currentTurnStartedAt;
+        if (pointsEarned > 0)
+        {
+            _consecutiveScorelessTurns = 0;
+        }
+        else
+        {
+            HandleScorelessTurn();
+        }
+
+        if (_tileBag.Count == 0 && _playerHands[playerId].Tiles.Count == 0)
+        {
+            FinishGame();
+            return new MoveResult(true, null, null);
+        }
 
         var currentTurnStartedAt = _currentTurnStartedAt;
         RotateTurn();
@@ -538,19 +561,28 @@ public class LetterGameEngine : ILetterGameEngine
 
     private void FinishGame()
     {
-        var finishedAt = DateTimeOffset.UtcNow;
-        
-        var gameElapsedTime = finishedAt - _gameStartedAt;
-        
-        var playersDetails = _gamePlayers.Select(x =>
+        lock (_lock)
         {
-            var playerScore = _playerScores[x.PlayerId];
+            if (_gameFinished)
+            {
+                return;
+            }
             
-            return new GameFinishedPlayerDetails(x.PlayerId, x.PlayerName, playerScore);
-        }).ToList();
+            _gameFinished = true;
+            var finishedAt = DateTimeOffset.UtcNow;
         
-        var gameFinishedDetails = new GameFinishedDetails(playersDetails, gameElapsedTime, finishedAt);
-        OnGameFinished.Invoke(gameFinishedDetails);
+            var gameElapsedTime = finishedAt - _gameStartedAt;
+        
+            var playersDetails = _gamePlayers.Select(x =>
+            {
+                var playerScore = _playerScores[x.PlayerId];
+            
+                return new GameFinishedPlayerDetails(x.PlayerId, x.PlayerName, playerScore);
+            }).ToList();
+        
+            var gameFinishedDetails = new GameFinishedDetails(playersDetails, gameElapsedTime, finishedAt);
+            OnGameFinished.Invoke(gameFinishedDetails);
+        }
     }
 
     private void InitializeTileBag()
@@ -585,6 +617,24 @@ public class LetterGameEngine : ILetterGameEngine
     private void NotifyStateChanged()
     {
         OnStateChanged.Invoke();
+    }
+    
+    private void HandleScorelessTurn()
+    {
+        var startCountingAtOrBelow = _initialSettings.TilesCount / 3;
+        if (_tileBag.Count > startCountingAtOrBelow)
+        {
+            _consecutiveScorelessTurns = 0;
+            return;
+        }
+        
+        _consecutiveScorelessTurns++;
+
+        var limit = 2 * _gamePlayers.Count;
+        if (_consecutiveScorelessTurns >= limit)
+        {
+            FinishGame();
+        }
     }
 
     private record ProposedMove(
