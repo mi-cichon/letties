@@ -26,6 +26,12 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
     
     private ILetterGameEngine? GameEngine { get; set; }
     
+    private GameFinishedDetails? GameFinishedDetails { get; set; }
+    
+    private readonly object _sync = new();
+
+    private const int PostGameDurationSeconds = 30;
+    
     private readonly ConcurrentDictionary<Guid, GameLobbySeat> _seats =
         new()
         {
@@ -37,7 +43,9 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
 
     #region Lobby State
     
-    private LobbySettings _lobbySettings = new(10, GameLanguage.Polish, 100, BoardType.Classic);
+    private static readonly LobbySettings DefaultLobbySettings = new(10, GameLanguage.Polish, 100, BoardType.Classic);
+
+    private LobbySettings _lobbySettings = DefaultLobbySettings;
     
     private static readonly (int Min, int Max) SettingsTileRange = (50, 200);
     
@@ -61,7 +69,13 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
             .Select(x => new LobbySeatDetails(x.Key, x.Value.PlayerId, x.Value.IsAdmin, x.Value.Order))
             .ToArray();
         
-        var currentState = new LobbyStateDetails(LobbyId, playerDetails, seatDetails, _lobbySettings, State);
+        var currentState = new LobbyStateDetails(LobbyId, playerDetails, seatDetails, _lobbySettings, State, null);
+
+        if (State == GameLobbyState.Game && GameEngine != null)
+        {
+            GameEngine.SetPlayerOnline(playerId, true);
+        }
+        
         return currentState;
     }
 
@@ -119,6 +133,11 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
     {
         var playerId = _players.SingleOrDefault(x => x.Value.PlayerConnectionId == connectionId).Key;
         
+        if (State == GameLobbyState.Game && GameEngine != null)
+        {
+            GameEngine.SetPlayerOnline(playerId, false);
+        }
+        
         await LeaveLobby(playerId);
     }
     
@@ -137,8 +156,11 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
 
     public bool IsPlayerInLobby(Guid playerId)
     {
-        _players.TryGetValue(playerId, out var lobbyPlayer);
-        return lobbyPlayer != null;
+        var seat = _seats
+            .Select(x => new { Seat = x.Value })
+            .FirstOrDefault(x => x.Seat.PlayerId == playerId);
+        
+        return seat != null || _players.ContainsKey(playerId);
     }
 
     public async Task UpdateLobbySettings(Guid playerId, LobbySettingsModel settingsModel)
@@ -164,12 +186,12 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
 
     private bool ValidateLobbySettings(LobbySettingsModel settingsModel)
     {
-        if (settingsModel.TimeBank >= SettingsTimeBankRange.Max || settingsModel.TimeBank <= SettingsTimeBankRange.Min)
+        if (settingsModel.TimeBank > SettingsTimeBankRange.Max || settingsModel.TimeBank < SettingsTimeBankRange.Min)
         {
             return false;
         }
         
-        if(settingsModel.TilesCount >= SettingsTileRange.Max || settingsModel.TilesCount <= SettingsTileRange.Min)
+        if(settingsModel.TilesCount > SettingsTileRange.Max || settingsModel.TilesCount < SettingsTileRange.Min)
         {
             return false;
         }
@@ -204,8 +226,9 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
         
         GameEngine = gameEngineFactory.CreateEngine(
             _lobbySettings, 
-            _players.Keys.ToList(), 
-            () => _ = UpdateGroupWithGameState());
+            _players.Values.Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName)).ToList(), 
+            () => _ = UpdateGroupWithGameState(),
+            gameFinishedDetails => _ = FinishGame(gameFinishedDetails));
         
         await UpdateGroupWithLobbyState();
         await UpdateGroupWithGameState();
@@ -213,12 +236,15 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
 
     public MoveResult HandleMove(Guid playerId, MoveRequestModel moveRequest)
     {
-        if (State != GameLobbyState.Game || GameEngine == null)
+        lock (_sync)
         {
-            return new MoveResult(false, MoveErrors.WrongTurn, "Not your turn!");
+            if (State != GameLobbyState.Game || GameEngine == null)
+            {
+                return new MoveResult(false, MoveErrors.WrongTurn, "Not your turn!");
+            }
+
+            return GameEngine.HandleMove(playerId, moveRequest);
         }
-        
-        return GameEngine.HandleMove(playerId, moveRequest);
     }
 
     public GameDetails GetGameDetails(Guid playerId)
@@ -233,22 +259,41 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
 
     public void HandleSkipTurn(Guid playerId)
     {
-        if (State != GameLobbyState.Game || GameEngine == null)
+        lock (_sync)
         {
-            throw new InvalidOperationException("Game details can only be retrieved while game is in progress.");
+            if (State != GameLobbyState.Game || GameEngine == null)
+            {
+                throw new InvalidOperationException("Game details can only be retrieved while game is in progress.");
+            }
+
+            GameEngine.HandleSkipTurn(playerId);
         }
-        
-        GameEngine.HandleSkipTurn(playerId);
     }
 
     public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
     {
-        if (State != GameLobbyState.Game || GameEngine == null)
+        lock (_sync)
         {
-            throw new InvalidOperationException("Game details can only be retrieved while game is in progress.");
+            if (State != GameLobbyState.Game || GameEngine == null)
+            {
+                throw new InvalidOperationException("Game details can only be retrieved while game is in progress.");
+            }
+
+            GameEngine.HandleSwapTiles(playerId, tileIdsToSwap);
         }
-        
-        GameEngine.HandleSwapTiles(playerId, tileIdsToSwap);
+    }
+
+    public void CheckGameRules()
+    {
+        lock (_sync)
+        {
+            if (State != GameLobbyState.Game || GameEngine == null)
+            {
+                return;
+            }
+
+            GameEngine.CheckGameRules();
+        }
     }
     
     #endregion
@@ -268,7 +313,7 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
             .Select(x => new LobbySeatDetails(x.Key, x.Value.PlayerId, x.Value.IsAdmin, x.Value.Order))
             .ToArray();
         
-        var currentState = new LobbyStateDetails(LobbyId, playerDetails, seatDetails, _lobbySettings, State);
+        var currentState = new LobbyStateDetails(LobbyId, playerDetails, seatDetails, _lobbySettings, State, GameFinishedDetails);
         
         await gameContextService.SendToGroup(LobbyGroupName, GameMethods.LobbyUpdated, currentState);
     }
@@ -279,5 +324,39 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
             GameMethods.GameUpdated, GameEngine!.GetGameDetails(x.Key)));
         
         await Task.WhenAll(updateTasks);
+    }
+    
+    private async Task FinishGame(GameFinishedDetails gameFinishedDetails)
+    {
+        lock (_sync)
+        {
+            if (State != GameLobbyState.Game)
+            {
+                return;
+            }
+            GameFinishedDetails = gameFinishedDetails;
+            State = GameLobbyState.PostGame;
+            GameEngine = null;
+        }
+        
+        await gameContextService.NotifyGroup(LobbyGroupName, "Game has finished.");
+        await UpdateGroupWithLobbyState();
+        await WaitPostGame();
+    }
+
+    private async Task WaitPostGame()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(PostGameDurationSeconds));
+        await RestartLobby();
+    }
+
+    private async Task RestartLobby()
+    {
+        State = GameLobbyState.Lobby;
+        GameEngine = null;
+        GameFinishedDetails = null;
+        _seats.Clear();
+        _lobbySettings = DefaultLobbySettings;
+        await UpdateGroupWithLobbyState();
     }
 }

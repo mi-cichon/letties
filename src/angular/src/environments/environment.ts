@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:5019/',
+  apiUrl: 'http://localhost:5019/api/',
   loginHubUrl: 'loginHub',
   gameHubUrl: 'gameHub',
   jwtStorageKey: 'letties_jwt_token',

@@ -9,4 +9,6 @@ public interface ILetterGameEngine
     MoveResult HandleMove(Guid playerId, MoveRequestModel request);
     void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap);
     void HandleSkipTurn(Guid playerId);
+    void SetPlayerOnline(Guid playerId, bool isOnline);
+    void CheckGameRules();
 }

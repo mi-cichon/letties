@@ -2,4 +2,5 @@
 
 public record TileInstanceDetails(
     Guid TileId,
-    Guid ValueId);
+    Guid ValueId,
+    Guid? SelectedValueId);

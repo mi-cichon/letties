@@ -41,18 +41,25 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+        context.Response.Headers["Pragma"] = "no-cache";
+        context.Response.Headers["Expires"] = "0";
+    }
+    await next();
+});
+
+app.UsePathBase("/api");
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Game API V1");
-    });
+    app.UseSwaggerUI();
 }
-
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
@@ -60,6 +67,14 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseCors("Policy");
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapHubs();
+app.MapControllers();
+
+app.Run();
 
 app.UseAuthorization();
 

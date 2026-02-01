@@ -5,9 +5,17 @@ import {
   effect,
   inject,
   input,
+  OnDestroy,
   signal,
 } from '@angular/core';
-import { GameDetails, LobbyPlayerDetails, MoveRequestModel, MoveResult } from '../../api';
+import {
+  GameDetails,
+  LobbyPlayerDetails,
+  MoveRequestModel,
+  MoveResult,
+  PlacedTileDetails,
+  TileDefinitionDetails,
+} from '../../api';
 import { GameHubService } from '../../services/game-hub-service';
 import { LoadingSpinnerComponent } from '../../common/loading-spinner/loading-spinner';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -23,26 +31,28 @@ import {
   CdkDropListGroup,
 } from '@angular/cdk/drag-drop';
 import { LobbyNamePipe } from '../overview/pipes/lobby-name.pipe';
+import { GetPlayerTimePipe } from './pipes/get-player-time-pipe';
+import { GetPlayerOfflinePipe } from './pipes/get-player-offline-pipe';
 
 @Component({
   selector: 'app-game',
   imports: [
     LoadingSpinnerComponent,
     TranslocoPipe,
-    PlayerNamePipe,
     CellLabelPipe,
-    SlicePipe,
     CdkDrag,
     CdkDropList,
     CdkDropListGroup,
     CdkDragPlaceholder,
     LobbyNamePipe,
+    GetPlayerTimePipe,
+    GetPlayerOfflinePipe,
   ],
   templateUrl: './game.html',
   styleUrl: './game.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Game {
+export class Game implements OnDestroy {
   lobbyId = input.required<string>();
   players = input.required<LobbyPlayerDetails[]>();
   myId = signal(getPlayerId());
@@ -50,9 +60,10 @@ export class Game {
   private gameHubService = inject(GameHubService);
 
   gameState = this.gameHubService.gameState;
+  lobbyState = this.gameHubService.lobbyState.asReadonly();
 
   placedTilesMap = computed(() => {
-    const map = new Map<string, any>();
+    const map = new Map<string, PlacedTileDetails>();
     this.gameState()?.boardContent?.placedTiles?.forEach((tile) => {
       map.set(tile.cellId!, tile);
     });
@@ -60,11 +71,22 @@ export class Game {
   });
 
   tileDefsMap = computed(() => {
-    const map = new Map<string, any>();
+    const map = new Map<string, TileDefinitionDetails>();
     this.gameState()?.tileDefinitions?.forEach((def) => {
       map.set(def.valueId!, def);
     });
     return map;
+  });
+
+  localSelectedValues = signal<Map<string, string | null>>(new Map());
+  activeBlankPickerCell = signal<string | null>(null);
+  blankPickerPos = signal<{ left: number; top: number } | null>(null);
+
+  blankOptions = computed(() => {
+    const defs = Array.from(this.tileDefsMap().values());
+    return defs
+      .filter((d: any) => d?.valueText && d.valueText !== '?')
+      .map((d: any) => ({ text: d.valueText, valueId: d.valueId }));
   });
 
   lastError = signal<string | null>(null);
@@ -74,7 +96,21 @@ export class Game {
 
   usedTileIds = computed(() => new Set(this.localPlacements().values()));
 
+  scoresByDepleted = computed(() => {
+    const scores = this.gameState()?.scores ?? [];
+
+    return [...scores].sort((a, b) => {
+      return Number(a.timeDepleted) - Number(b.timeDepleted);
+    });
+  });
+
   isMyTurn = computed(() => this.gameState()?.currentTurnPlayerId === this.myId());
+
+  amIPlaying = computed(() => {
+    return this.gameState()?.scores?.find((x) => x.playerId === this.myId()) !== undefined;
+  });
+
+  playerRemainingTimes = signal<Map<string, string>>(new Map());
 
   tileOrder = signal<string[]>([]);
 
@@ -142,6 +178,15 @@ export class Game {
       newMap.set(cellId, selectedId);
       this.localPlacements.set(newMap);
       this.selectedTileId.set(null);
+
+      const vId = this.getTileValueIdFromHand(selectedId);
+      const def = this.tileDefsMap().get(vId!);
+      if (def?.valueText === '?') {
+        const selMap = new Map(this.localSelectedValues());
+        selMap.set(cellId, null);
+        this.localSelectedValues.set(selMap);
+        this.openBlankPicker(cellId);
+      }
     }
   }
 
@@ -149,16 +194,18 @@ export class Game {
     this.selectedTilesForSwap.set(new Set<string>());
     this.isSwapMode.set(false);
     this.localPlacements.set(new Map());
+    this.localSelectedValues.set(new Map());
+    this.activeBlankPickerCell.set(null);
     this.selectedTileId.set(null);
   }
 
   async submitMove() {
     this.lastError.set(null);
 
-    const placements = Array.from(this.localPlacements().entries()).map(([cellId, tileId]) => ({
-      cellId,
-      tileId,
-    }));
+    const placements = Array.from(this.localPlacements().entries()).map(([cellId, tileId]) => {
+      const sel = this.localSelectedValues().get(cellId);
+      return sel ? { cellId, tileId, selectedValueId: sel } : { cellId, tileId };
+    });
 
     if (placements.length === 0) return;
 
@@ -213,6 +260,15 @@ export class Game {
     this.localPlacements.set(currentPlacements);
 
     this.selectedTileId.set(null);
+
+    const vId = this.getTileValueIdFromHand(tileId);
+    const def = this.tileDefsMap().get(vId!);
+    if (def?.valueText === '?') {
+      const selMap = new Map(this.localSelectedValues());
+      selMap.set(cellId, null);
+      this.localSelectedValues.set(selMap);
+      this.openBlankPicker(cellId);
+    }
   }
 
   onDropToRack(event: CdkDragDrop<any[]>) {
@@ -240,11 +296,13 @@ export class Game {
     // 1. Czyścimy kafelek z planszy
     const currentPlacements = new Map(this.localPlacements());
     let wasOnBoard = false;
+    let removedCell: string | null = null;
 
     for (const [cellId, id] of currentPlacements.entries()) {
       if (id === tileId) {
         currentPlacements.delete(cellId);
         wasOnBoard = true;
+        removedCell = cellId;
         break;
       }
     }
@@ -252,8 +310,13 @@ export class Game {
     if (wasOnBoard) {
       this.localPlacements.set(currentPlacements);
 
-      // 2. Opcjonalnie: Dodaj ten tileId na początek Twojej kolejki na stojaku,
-      // żeby nie "skakał" na koniec listy po powrocie z planszy
+      if (removedCell) {
+        const selMap = new Map(this.localSelectedValues());
+        selMap.delete(removedCell);
+        this.localSelectedValues.set(selMap);
+        if (this.activeBlankPickerCell() === removedCell) this.activeBlankPickerCell.set(null);
+      }
+
       const newOrder = [tileId, ...this.tileOrder().filter((id) => id !== tileId)];
       this.tileOrder.set(newOrder);
     }
@@ -311,5 +374,124 @@ export class Game {
     this.isSwapMode.set(false);
 
     await this.gameHubService.skipTurn();
+  }
+
+  chooseBlankValue(cellId: string, valueId: string) {
+    const selMap = new Map(this.localSelectedValues());
+    selMap.set(cellId, valueId);
+    this.localSelectedValues.set(selMap);
+    if (this.activeBlankPickerCell() === cellId) this.activeBlankPickerCell.set(null);
+  }
+
+  clearBlankSelection(cellId: string) {
+    const selMap = new Map(this.localSelectedValues());
+    selMap.delete(cellId);
+    this.localSelectedValues.set(selMap);
+    if (this.activeBlankPickerCell() === cellId) this.activeBlankPickerCell.set(null);
+  }
+
+  openBlankPicker(cellId: string) {
+    this.activeBlankPickerCell.set(cellId);
+
+    // DOM may not be updated immediately after changing signals — wait a frame
+    requestAnimationFrame(() => {
+      try {
+        const el = document.querySelector(`[data-cell-id="${cellId}"]`) as HTMLElement | null;
+        if (!el) {
+          this.blankPickerPos.set(null);
+          return;
+        }
+        const r = el.getBoundingClientRect();
+        const left = Math.round(r.left + r.width / 2);
+        const top = Math.round(r.top + r.height / 2);
+        this.blankPickerPos.set({ left, top });
+      } catch {
+        this.blankPickerPos.set(null);
+      }
+    });
+  }
+
+  private remainingSeconds: Map<string, number> = new Map();
+  private countdownTimer: number | null = null;
+
+  private parseMMSS(value: string | undefined | null): number {
+    if (!value) return 0;
+    const parts = value.split(':').map((p) => parseInt(p, 10));
+    if (parts.some((n) => isNaN(n))) return 0;
+    let seconds = 0;
+    let multiplier = 1;
+    for (let i = parts.length - 1; i >= 0; i--) {
+      seconds += parts[i] * multiplier;
+      multiplier *= 60;
+    }
+    return seconds;
+  }
+
+  private formatSecondsToMMSS(secs: number): string {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  private initializeTimersFromState() {
+    const state = this.gameState();
+    const scores = state?.scores ?? [];
+    const now = Date.now();
+
+    const map = new Map<string, number>();
+    for (const s of scores) {
+      const pid = s.playerId!;
+      const base = this.parseMMSS(s.timeRemaining ?? undefined);
+      map.set(pid, base);
+    }
+
+    const current = state?.currentTurnPlayerId ?? null;
+    const startedAt = state?.currentTurnStartedAt ? Date.parse(state.currentTurnStartedAt) : null;
+    if (current && startedAt) {
+      const elapsed = Math.floor((now - startedAt) / 1000);
+      const prev = map.get(current) ?? 0;
+      map.set(current, Math.max(0, prev - elapsed));
+    }
+
+    this.remainingSeconds = map;
+    this.emitRemainingStrings();
+    this.startTickForCurrent();
+  }
+
+  private emitRemainingStrings() {
+    const out = new Map<string, string>();
+    for (const [pid, secs] of this.remainingSeconds.entries()) {
+      out.set(pid, this.formatSecondsToMMSS(Math.max(0, Math.floor(secs))));
+    }
+    this.playerRemainingTimes.set(out);
+  }
+
+  private startTickForCurrent() {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+
+    const current = this.gameState()?.currentTurnPlayerId ?? null;
+    if (!current) return;
+
+    this.countdownTimer = window.setInterval(() => {
+      const prev = this.remainingSeconds.get(current) ?? 0;
+      const next = Math.max(0, prev - 1);
+      this.remainingSeconds.set(current, next);
+      this.emitRemainingStrings();
+    }, 1000);
+  }
+
+  private readonly _timersEffect = effect(() => {
+    this.gameState();
+    this.initializeTimersFromState();
+  });
+
+  ngOnDestroy(): void {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
   }
 }

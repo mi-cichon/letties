@@ -1,6 +1,7 @@
 :host {
   --base-size: 1.4rem;
   --radius: 2.4rem;
+  user-select: none;
 
   display: flex;
   justify-content: center;

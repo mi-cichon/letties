@@ -10,73 +10,108 @@ namespace WebGame.Application.Games;
 public class LetterGameEngine : ILetterGameEngine
 {
     private readonly LobbySettings _initialSettings;
-    private readonly List<Guid> _playerIds;
+    private readonly List<GamePlayer> _gamePlayers;
 
     private readonly IGameLanguageProvider _languageProvider;
-    
+
     private readonly BoardLayoutDetails _boardLayout;
-    
+
     private readonly List<PlacedTileDetails> _placedTiles = new();
-    private readonly Dictionary<Guid, List<TileInstanceDetails>> _playerHands = new();
+    private readonly Dictionary<Guid, PlayerHand> _playerHands = new();
     private readonly Dictionary<Guid, int> _playerScores = new();
     private readonly Stack<TileInstanceDetails> _tileBag = new();
-    
+
+    private readonly IReadOnlyList<LetterTileItem> _tileDefinitions;
+    private readonly Dictionary<Guid, LetterTileItem> _tileDefById;
+    private readonly Guid? _blankValueId;
+
     private Guid _currentTurnPlayerId;
+    private DateTimeOffset _currentTurnStartedAt = DateTimeOffset.UtcNow;
+    
+    private readonly DateTimeOffset _gameStartedAt = DateTimeOffset.UtcNow;
 
     private event Action OnStateChanged;
+    private event Action<GameFinishedDetails>  OnGameFinished;
+
+    private const int TimeBelowMinuteBonusSeconds = 30;
 
     public LetterGameEngine(
         IGameLanguageProviderFactory gameLanguageProviderFactory,
         IBoardGenerator boardGenerator,
-        LobbySettings initialSettings, 
-        List<Guid> playerIds,
-        Action onStateChanged)
+        LobbySettings initialSettings,
+        List<LobbyPlayerDetails> players,
+        Action onStateChanged,
+        Action<GameFinishedDetails>  onGameFinished)
     {
         _initialSettings = initialSettings;
-        _playerIds = playerIds;
+        _gamePlayers = players.Select(x => new GamePlayer(x.PlayerId, x.PlayerName)).ToList();
         _languageProvider = gameLanguageProviderFactory.CreateProvider(initialSettings.Language);
         _boardLayout = boardGenerator.GenerateBoard(_initialSettings.BoardType);
-        
-        OnStateChanged += onStateChanged;
-        
-        foreach (var id in _playerIds) _playerScores[id] = 0;
-        
-        InitializeTileBag();
 
-        foreach (var playerId in _playerIds)
+        _tileDefinitions = _languageProvider.GetTileDefinitions();
+        _tileDefById = _tileDefinitions.ToDictionary(d => d.ValueId, d => d);
+
+        _blankValueId = _tileDefinitions.FirstOrDefault(d => d.ValueText is "?")?.ValueId;
+
+        OnStateChanged += onStateChanged;
+        OnGameFinished += onGameFinished;
+
+        foreach (var gamePlayer in _gamePlayers)
         {
-            _playerHands[playerId] = DrawTiles(7);
+            _playerScores[gamePlayer.PlayerId] = 0;
         }
 
-        _currentTurnPlayerId = playerIds.First();
-        
+        InitializeTileBag();
+
+        foreach (var gamePlayer in _gamePlayers)
+        {
+            var playerTiles = DrawTiles(7);
+            _playerHands[gamePlayer.PlayerId] = new PlayerHand(playerTiles, TimeSpan.FromMinutes(initialSettings.TimeBank), true, false);
+        }
+
+        _currentTurnPlayerId = _gamePlayers.First().PlayerId;
+
         NotifyStateChanged();
     }
-    
+
     public GameDetails GetGameDetails(Guid requestingPlayerId)
     {
         var myHand = _playerHands
-            .GetValueOrDefault(requestingPlayerId)?
-            .Select(t => new TileInstanceDetails(t.TileId, t.ValueId))
+            .GetValueOrDefault(requestingPlayerId);
+            
+        var myTiles = myHand?.Tiles
+            .Select(t => new TileInstanceDetails(t.TileId, t.ValueId, t.SelectedValueId))
             .ToList();
-        
+
         return new GameDetails(
             Layout: _boardLayout,
-            TileDefinitions: _languageProvider.GetTileDefinitions()
+            TileDefinitions: _tileDefinitions
                 .Select(d => new TileDefinitionDetails(d.ValueId, d.ValueText, d.BasePoints))
                 .ToList(),
             BoardContent: new BoardContentDetails(_placedTiles),
-            Scores: _playerIds.Select(pid => new PlayerScoreDto(
-                PlayerId: pid,
-                TotalPoints: _playerScores[pid],
-                TilesRemainingInHand: _playerHands[pid].Count
+            Scores: _gamePlayers.Select(gamePlayer => new PlayerScoreDto(
+                PlayerId: gamePlayer.PlayerId,
+                TotalPoints: _playerScores[gamePlayer.PlayerId],
+                TilesRemainingInHand: _playerHands[gamePlayer.PlayerId].Tiles.Count,
+                TimeRemaining: _playerHands[gamePlayer.PlayerId].RemainingTime,
+                TimeDepleted: _playerHands[gamePlayer.PlayerId].TimeDepleted,
+                PlayerName: gamePlayer.PlayerName
             )).ToList(),
             CurrentTurnPlayerId: _currentTurnPlayerId,
-            MyHand: myHand != null ? new PlayerHandDetails(myHand) : null,
+            CurrentTurnStartedAt: _currentTurnStartedAt,
+            MyHand: myHand != null ? new PlayerHandDetails(myTiles!) : null,
             TilesRemainingInBag: _tileBag.Count
         );
     }
-    
+
+    public void SetPlayerOnline(Guid playerId, bool isOnline)
+    {
+        if (_playerHands.TryGetValue(playerId, out var hand))
+        {
+            hand.IsOnline = isOnline;
+        }
+    }
+
     public MoveResult HandleMove(Guid playerId, MoveRequestModel request)
     {
         if (playerId != _currentTurnPlayerId)
@@ -85,15 +120,42 @@ public class LetterGameEngine : ILetterGameEngine
         }
 
         var playerHand = _playerHands[playerId];
+
         var tilesToPlace = new List<TileInstanceDetails>();
-    
-        foreach (var tile in request.Placements.Select(p => playerHand.FirstOrDefault(t => t.TileId == p.TileId)))
+        foreach (var placement in request.Placements)
         {
+            var tile = playerHand.Tiles.FirstOrDefault(t => t.TileId == placement.TileId);
             if (tile == null)
             {
                 return new MoveResult(false, MoveErrors.TileNotInHand, "Tile not in hand!");
             }
-            tilesToPlace.Add(tile);
+
+            var isBlankTile = _blankValueId != null && tile.ValueId == _blankValueId;
+
+            if (placement.SelectedValueId != null)
+            {
+                if (!isBlankTile)
+                {
+                    throw new InvalidOperationException("Blank tile cannot select a value.");
+                }
+
+                if (!_tileDefById.ContainsKey(placement.SelectedValueId.Value))
+                {
+                    throw new InvalidOperationException("SelectedValueId is not a valid tile definition");
+                }
+
+                if (_blankValueId != null && placement.SelectedValueId.Value == _blankValueId)
+                {
+                    throw new InvalidOperationException("Blank tile cannot select blank as its value.");
+                }
+            }
+
+            if (isBlankTile && placement.SelectedValueId == null)
+            {
+                throw new InvalidOperationException("Blank tile must have SelectedValueId.");
+            }
+
+            tilesToPlace.Add(tile with { SelectedValueId = placement.SelectedValueId });
         }
 
         if (request.Placements.Any(p => _placedTiles.Any(pt => pt.CellId == p.CellId)))
@@ -104,65 +166,94 @@ public class LetterGameEngine : ILetterGameEngine
         return ExecuteMove(playerId, request.Placements, tilesToPlace);
     }
 
-public void HandleSkipTurn(Guid playerId)
-{
-    if (playerId != _currentTurnPlayerId)
+    public void HandleSkipTurn(Guid playerId)
     {
-        throw new InvalidOperationException("Not your turn!");
-    }
-
-    RotateTurn();
-    NotifyStateChanged();
-}
-
-public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
-{
-    if (playerId != _currentTurnPlayerId)
-    {
-        throw new InvalidOperationException("Not your turn!");
-    }
-
-    if (tileIdsToSwap == null || !tileIdsToSwap.Any())
-    {
-        throw new InvalidOperationException("No tiles to swap.");
-    }
-
-    if (_tileBag.Count < 7)
-    {
-        throw new InvalidOperationException("Not enough tiles in bag to swap.");
-    }
-
-    var playerHand = _playerHands[playerId];
-    var tilesToReturn = new List<TileInstanceDetails>();
-
-    foreach (var tileId in tileIdsToSwap)
-    {
-        var tile = playerHand.FirstOrDefault(t => t.TileId == tileId);
-        if (tile == null)
+        if (playerId != _currentTurnPlayerId)
         {
-            throw new InvalidOperationException($"Tile with id {tileId} not found in player's hand.");
+            throw new InvalidOperationException("Not your turn!");
         }
-        tilesToReturn.Add(tile);
+        var currentTurnStartedAt = _currentTurnStartedAt;
+        RotateTurn();
+        SubtractTime(playerId, currentTurnStartedAt);
+        NotifyStateChanged();
     }
+    
 
-    foreach (var tile in tilesToReturn)
+    public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
     {
-        playerHand.Remove(tile);
+        if (playerId != _currentTurnPlayerId)
+        {
+            throw new InvalidOperationException("Not your turn!");
+        }
+
+        if (tileIdsToSwap == null || !tileIdsToSwap.Any())
+        {
+            throw new InvalidOperationException("No tiles to swap.");
+        }
+
+        if (_tileBag.Count < 7)
+        {
+            throw new InvalidOperationException("Not enough tiles in bag to swap.");
+        }
+
+        var playerHand = _playerHands[playerId];
+        var tilesToReturn = new List<TileInstanceDetails>();
+
+        foreach (var tileId in tileIdsToSwap)
+        {
+            var tile = playerHand.Tiles.FirstOrDefault(t => t.TileId == tileId);
+            if (tile == null)
+            {
+                throw new InvalidOperationException($"Tile with id {tileId} not found in player's hand.");
+            }
+            tilesToReturn.Add(tile);
+        }
+
+        foreach (var tile in tilesToReturn)
+        {
+            playerHand.Tiles.Remove(tile);
+        }
+
+        var newTiles = DrawTiles(tilesToReturn.Count);
+        playerHand.Tiles.AddRange(newTiles);
+
+        var bagList = _tileBag.ToList();
+        bagList.AddRange(tilesToReturn);
+
+        _tileBag.Clear();
+        var shuffled = bagList.OrderBy(_ => Guid.CreateVersion7());
+        foreach (var t in shuffled) _tileBag.Push(t);
+
+        var currentTurnStartedAt = _currentTurnStartedAt;
+        RotateTurn();
+        SubtractTime(playerId, currentTurnStartedAt);
+        NotifyStateChanged();
     }
 
-    var newTiles = DrawTiles(tilesToReturn.Count);
-    playerHand.AddRange(newTiles);
+    public void CheckGameRules()
+    {
+        var currentTurnPlayerHand = _playerHands[_currentTurnPlayerId];
+        var timeElapsed = DateTimeOffset.UtcNow - _currentTurnStartedAt;
+        
+        if (currentTurnPlayerHand.RemainingTime <= timeElapsed)
+        {
+            currentTurnPlayerHand.RemainingTime = TimeSpan.Zero;
+            currentTurnPlayerHand.TimeDepleted = true;
+            RotateTurn();
+            NotifyStateChanged();
+        }
+        
+        if (_playerHands.All(h => h.Value.TimeDepleted))
+        {
+            FinishGame();
+        }
 
-    var bagList = _tileBag.ToList();
-    bagList.AddRange(tilesToReturn);
+        if (_playerHands.All(h => !h.Value.IsOnline))
+        {
+            FinishGame();
+        }
 
-    _tileBag.Clear();
-    var shuffled = bagList.OrderBy(_ => Guid.CreateVersion7());
-    foreach (var t in shuffled) _tileBag.Push(t);
-
-    RotateTurn();
-    NotifyStateChanged();
-}
+    }
 
     private MoveResult ExecuteMove(Guid playerId, List<TilePlacementModel> placements, List<TileInstanceDetails> tiles)
     {
@@ -170,13 +261,18 @@ public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
         {
             var cell = _boardLayout.Cells.First(c => c.Id == p.CellId);
             var tile = tiles.First(t => t.TileId == p.TileId);
-            var def = _languageProvider.GetTileDefinitions().First(d => d.ValueId == tile.ValueId);
-            return new ProposedMove(cell, tile, def);
+
+            var baseDef = _tileDefById[tile.ValueId];
+
+            var displayValueId = tile.SelectedValueId ?? tile.ValueId;
+            var displayDef = _tileDefById[displayValueId];
+
+            return new ProposedMove(cell, tile, baseDef, displayDef);
         }).ToList();
 
         if (!ValidateConnectivity(proposedMoves))
         {
-            return new MoveResult(false, MoveErrors.TilesNotConnected, "Tiles are not connected!" );
+            return new MoveResult(false, MoveErrors.TilesNotConnected, "Tiles are not connected!");
         }
 
         if (!ValidateLine(proposedMoves))
@@ -185,7 +281,7 @@ public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
         }
 
         var formedWords = ScanForWords(proposedMoves);
-        
+
         if (formedWords.Count == 0)
         {
             return new MoveResult(false, MoveErrors.InvalidWord, "Move must create at least one word!");
@@ -205,50 +301,62 @@ public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
                 move.Cell.Id,
                 move.Tile.TileId,
                 move.Tile.ValueId,
-                playerId));
+                playerId,
+                move.Tile.SelectedValueId));
 
-            _playerHands[playerId].Remove(move.Tile);
+            var toRemove = _playerHands[playerId].Tiles.First(t => t.TileId == move.Tile.TileId);
+            _playerHands[playerId].Tiles.Remove(toRemove);
         }
 
         var pointsEarned = formedWords.Sum(w => w.Points);
-        
+
         if (placements.Count == 7)
         {
             pointsEarned += 50;
         }
-        
+
         _playerScores[playerId] += pointsEarned;
 
         var newTiles = DrawTiles(placements.Count);
-        _playerHands[playerId].AddRange(newTiles);
+        _playerHands[playerId].Tiles.AddRange(newTiles);
+        
+        var lastTurnStartTime = _currentTurnStartedAt;
 
+        var currentTurnStartedAt = _currentTurnStartedAt;
         RotateTurn();
+        SubtractTime(playerId, currentTurnStartedAt);
 
         NotifyStateChanged();
+        
+        SubtractTime(playerId, lastTurnStartTime);
 
         return new MoveResult(true, null, null);
     }
-    
+
     private List<ScannedWord> ScanForWords(List<ProposedMove> proposedMoves)
     {
         var words = new List<ScannedWord>();
 
-        var virtualBoard = _placedTiles.Select(pt => {
+        var virtualBoard = _placedTiles.Select(pt =>
+        {
             var cell = _boardLayout.Cells.First(c => c.Id == pt.CellId);
-            var def = _languageProvider.GetTileDefinitions().First(d => d.ValueId == pt.ValueId);
-            return new TempTile(cell.X, cell.Y, def.BasePoints, def.ValueId, cell.Type, false);
-        }).Concat(proposedMoves.Select(m => 
-            new TempTile(m.Cell.X, m.Cell.Y, m.Def.BasePoints, m.Def.ValueId, m.Cell.Type, true)
+
+            var baseDef = _tileDefById[pt.ValueId];
+            var displayValueId = pt.SelectedValueId ?? pt.ValueId;
+
+            return new TempTile(cell.X, cell.Y, baseDef.BasePoints, displayValueId, cell.Type, false);
+        }).Concat(proposedMoves.Select(m =>
+            new TempTile(m.Cell.X, m.Cell.Y, m.BaseDef.BasePoints, m.DisplayDef.ValueId, m.Cell.Type, true)
         )).ToDictionary(t => (t.X, t.Y));
-        
+
         if (proposedMoves.Count == 1)
         {
             var hWord = ScanLine(proposedMoves[0].Cell.X, proposedMoves[0].Cell.Y, true, virtualBoard);
             var vWord = ScanLine(proposedMoves[0].Cell.X, proposedMoves[0].Cell.Y, false, virtualBoard);
-        
+
             if (hWord != null) words.Add(hWord);
             if (vWord != null) words.Add(vWord);
-        
+
             return words;
         }
 
@@ -263,7 +371,7 @@ public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
 
         return words;
     }
-    
+
     private ScannedWord? ScanLine(int x, int y, bool horizontal, Dictionary<(int, int), TempTile> board)
     {
         var dx = horizontal ? 1 : 0;
@@ -284,8 +392,8 @@ public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
         int currX = startX, currY = startY;
         while (board.TryGetValue((currX, currY), out var tile))
         {
-            text += _languageProvider.GetTileDefinitions().First(d => d.ValueId == tile.ValueId).ValueText;
-        
+            text += _tileDefById[tile.DisplayValueId].ValueText;
+
             var tilePoints = tile.Points;
 
             if (tile.IsNew)
@@ -302,7 +410,7 @@ public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
 
         return count > 1 ? new ScannedWord(text, wordScore * wordMultiplier, horizontal) : null;
     }
-    
+
     private int GetLetterMultiplier(LetterCellType type)
     {
         return type switch
@@ -323,7 +431,7 @@ public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
             _ => 1
         };
     }
-    
+
     private bool ValidateConnectivity(List<ProposedMove> proposedMoves)
     {
         if (_placedTiles.Count == 0)
@@ -341,14 +449,14 @@ public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
             var neighbors = new[] { (0, 1), (0, -1), (1, 0), (-1, 0) };
             foreach (var (dx, dy) in neighbors)
             {
-                if (placedCoords.Contains((m.Cell.X + dx, m.Cell.Y + dy))) 
+                if (placedCoords.Contains((m.Cell.X + dx, m.Cell.Y + dy)))
                     return true;
             }
         }
-    
+
         return false;
     }
-    
+
     private bool ValidateLine(List<ProposedMove> proposedMoves)
     {
         if (proposedMoves.Count <= 1) return true;
@@ -389,26 +497,71 @@ public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
 
         return true;
     }
-    
+
     private void RotateTurn()
     {
-        var currentIndex = _playerIds.IndexOf(_currentTurnPlayerId);
-        var nextIndex = (currentIndex + 1) % _playerIds.Count;
-        _currentTurnPlayerId = _playerIds[nextIndex];
+        var currentPlayer = _gamePlayers.First(p => p.PlayerId == _currentTurnPlayerId);
+        var currentIndex = _gamePlayers.IndexOf(currentPlayer);
+
+        for (var step = 1; step <= _gamePlayers.Count; step++)
+        {
+            var nextIndex = (currentIndex + step) % _gamePlayers.Count;
+            var candidatePlayer = _gamePlayers[nextIndex];
+
+            if (_playerHands.TryGetValue(candidatePlayer.PlayerId, out var hand) && !hand.TimeDepleted)
+            {
+                _currentTurnPlayerId = candidatePlayer.PlayerId;
+                _currentTurnStartedAt = DateTimeOffset.UtcNow;
+                return;
+            }
+        }
+
+        FinishGame();
+    }
+
+    private void SubtractTime(Guid playerId, DateTimeOffset lastTurnStartTime)
+    {
+        var timeElapsed = DateTimeOffset.UtcNow - lastTurnStartTime;
+        var remainingTime = _playerHands[playerId].RemainingTime - timeElapsed;
+        
+        if (remainingTime <= TimeSpan.Zero)
+        {
+            _playerHands[playerId].RemainingTime = TimeSpan.Zero;
+            _playerHands[playerId].TimeDepleted = true;
+            return;
+        }
+
+        if (remainingTime < TimeSpan.FromMinutes(1))
+        {
+            remainingTime += TimeSpan.FromSeconds(TimeBelowMinuteBonusSeconds);
+            _playerHands[playerId].RemainingTime = remainingTime;
+        }
+    }
+
+    private void FinishGame()
+    {
+        var topPlayer = _playerScores.OrderByDescending(p => p.Value).First();
+        
+        var finishedAt = DateTimeOffset.UtcNow;
+        
+        var gameElapsedTime = finishedAt - _gameStartedAt;
+        
+        var gameFinishedDetails = new GameFinishedDetails(topPlayer.Key, topPlayer.Value, gameElapsedTime, finishedAt);
+        OnGameFinished.Invoke(gameFinishedDetails);
     }
 
     private void InitializeTileBag()
     {
-        var defs = _languageProvider.GetTileDefinitions();
+        var defs = _tileDefinitions;
         var tempTiles = new List<TileInstanceDetails>();
 
         foreach (var def in defs)
         {
             var count = (int)Math.Round(_initialSettings.TilesCount * (def.Weight / 100.0));
-            
+
             for (var i = 0; i < count; i++)
             {
-                tempTiles.Add(new TileInstanceDetails(Guid.CreateVersion7(), def.ValueId));
+                tempTiles.Add(new TileInstanceDetails(Guid.CreateVersion7(), def.ValueId, null));
             }
         }
 
@@ -425,15 +578,29 @@ public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
         }
         return drawn;
     }
-    
+
     private void NotifyStateChanged()
     {
         OnStateChanged.Invoke();
     }
-    
-    private record ProposedMove(BoardCellDetails Cell, TileInstanceDetails Tile, LetterTileItem Def);
-    
+
+    private record ProposedMove(
+        BoardCellDetails Cell,
+        TileInstanceDetails Tile,
+        LetterTileItem BaseDef,
+        LetterTileItem DisplayDef);
+
     private record ScannedWord(string Text, int Points, bool IsHorizontal);
 
-    private record TempTile(int X, int Y, int Points, Guid ValueId, LetterCellType Type, bool IsNew);
+    private record TempTile(int X, int Y, int Points, Guid DisplayValueId, LetterCellType Type, bool IsNew);
+
+    private record GamePlayer(Guid PlayerId, string PlayerName);
+
+    private class PlayerHand(List<TileInstanceDetails> tiles, TimeSpan remainingTime, bool isOnline, bool timeDepleted)
+    {
+        public List<TileInstanceDetails> Tiles { get; set; } = tiles;
+        public TimeSpan RemainingTime { get; set; } = remainingTime;
+        public bool IsOnline { get; set; } = isOnline;
+        public bool TimeDepleted { get; set; } = timeDepleted;
+    };
 }

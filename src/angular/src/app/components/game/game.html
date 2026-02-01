@@ -4,7 +4,7 @@
       <div class="sidebar-header">
         <h2>{{ lobbyId() | lobbyName }}</h2>
         <div class="bag-card">
-          <span class="icon">🎒</span>
+          <span class="icon">💰</span>
           <div class="bag-details">
             <span class="label">{{ 'lobby.bag' | transloco }}</span>
             <span class="count">{{ state.tilesRemainingInBag }}</span>
@@ -13,16 +13,26 @@
       </div>
 
       <div class="scores-container">
-        @for (score of state.scores; track score.playerId) {
-          <div class="player-card" [class.active]="score.playerId === state.currentTurnPlayerId">
-            <div class="player-avatar">
-              {{ score.playerId! | playerName: players() | slice: 0 : 1 }}
-            </div>
+        @for (score of scoresByDepleted(); track score.playerId) {
+          <div
+            class="player-card"
+            [class.active]="score.playerId === state.currentTurnPlayerId"
+            [class.depleted]="score.timeDepleted"
+            [class.offline]="score.playerId! | getPlayerOffline: lobbyState()!.players!"
+          >
             <div class="player-info">
-              <span class="name">{{ score.playerId! | playerName: players() }}</span>
-              <span class="score-val">{{ score.totalPoints }} pkt</span>
+              <div class="top-details">
+                <span class="name">{{ score.playerName }}</span>
+                <span class="hand-indicator">🤚 {{ score.tilesRemainingInHand }}</span>
+              </div>
+
+              <div class="details">
+                <span class="score-val">{{ score.totalPoints }} p.</span>
+                <span class="remaining-time">
+                  {{ score.playerId! | getPlayerTime: playerRemainingTimes() }}
+                </span>
+              </div>
             </div>
-            <div class="hand-indicator">🎴 {{ score.tilesRemainingInHand }}</div>
           </div>
         }
       </div>
@@ -47,6 +57,7 @@
               [cdkDropListEnterPredicate]="canDropOnBoard"
               [cdkDropListData]="cell.id!"
               (cdkDropListDropped)="onDropToBoard($event)"
+              [attr.data-cell-id]="cell.id!"
             >
               @if (!placedTile && !localTileId) {
                 <span class="cell-label">{{ cell.type! | cellLabel }}</span>
@@ -64,53 +75,82 @@
                   cdkDrag
                   [cdkDragData]="localTileId"
                 >
-                  <span class="letter">{{ def?.valueText }}</span>
+                  @let sel = localSelectedValues().get(cell.id!);
+                  @if (sel) {
+                    <span class="letter">{{ tileDefsMap().get(sel)?.valueText }}</span>
+                    <span class="blank-indicator">?</span>
+                  } @else if (placedTile?.selectedValueId) {
+                    <span class="letter">{{
+                      tileDefsMap().get(placedTile?.selectedValueId!)?.valueText
+                    }}</span>
+                    <span class="blank-indicator">?</span>
+                  } @else {
+                    <span class="letter">{{ def?.valueText }}</span>
+                  }
                   <span class="points">{{ def?.basePoints }}</span>
                   <div *cdkDragPlaceholder></div>
                 </div>
+                @if (def?.valueText === '?') {
+                  @if (activeBlankPickerCell() === cell.id! && blankPickerPos()) {
+                    <div
+                      class="blank-picker"
+                      [style.left.px]="blankPickerPos()?.left"
+                      [style.top.px]="blankPickerPos()?.top"
+                    >
+                      @for (opt of blankOptions(); track opt.valueId) {
+                        <button class="blank-btn" (click)="chooseBlankValue(cell.id!, opt.valueId)">
+                          {{ opt.text }}
+                        </button>
+                      }
+                      <button class="blank-clear" (click)="clearBlankSelection(cell.id!)">×</button>
+                    </div>
+                  }
+                }
               }
             </div>
           }
         </div>
       </div>
-      <footer class="hand-section">
-        @if (lastError(); as error) {
-          <div class="move-error-popup animate-bounce-in">
-            <span class="icon">⚠️</span>
-            <span class="message">{{ 'lobby.errors.' + error | transloco }}</span>
-            <button class="close-btn" (click)="lastError.set(null)">×</button>
-          </div>
-        }
+      @if (amIPlaying()) {
+        <footer class="hand-section">
+          @if (lastError(); as error) {
+            <div class="move-error-popup animate-bounce-in">
+              <span class="icon">⚠️</span>
+              <span class="message">{{ 'lobby.errors.' + error | transloco }}</span>
+              <button class="close-btn" (click)="lastError.set(null)">×</button>
+            </div>
+          }
 
-        <div class="rack-container">
-          <div
-            class="player-rack"
-            cdkDropList
-            orientation="horizontal"
-            cdkDropListOrientation="horizontal"
-            [cdkDropListData]="orderedHand()"
-            (cdkDropListDropped)="onDropToRack($event)"
-          >
-            @for (tile of orderedHand(); track tile.tileId) {
-              @let def = tileDefsMap().get(tile.valueId!);
-              @let isUsed = usedTileIds().has(tile.tileId!);
+          <div class="rack-container">
+            <div
+              class="player-rack"
+              cdkDropList
+              orientation="horizontal"
+              cdkDropListOrientation="horizontal"
+              [cdkDropListData]="orderedHand()"
+              (cdkDropListDropped)="onDropToRack($event)"
+            >
+              @for (tile of orderedHand(); track tile.tileId) {
+                @let def = tileDefsMap().get(tile.valueId!);
+                @let isUsed = usedTileIds().has(tile.tileId!);
 
-              <div
-                class="tile in-hand"
-                [class.is-used]="isUsed"
-                cdkDrag
-                [cdkDragData]="tile.tileId"
-                [cdkDragDisabled]="isUsed"
-                [class.selected-for-swap]="selectedTilesForSwap().has(tile.tileId)"
-                (click)="toggleTileSelection(tile.tileId)"
-              >
-                <span class="letter">{{ def?.valueText }}</span>
-                <span class="points">{{ def?.basePoints }}</span>
-              </div>
-            }
+                <div
+                  class="tile in-hand"
+                  [class.is-used]="isUsed"
+                  cdkDrag
+                  [cdkDragData]="tile.tileId"
+                  [cdkDragDisabled]="isUsed"
+                  [class.selected-for-swap]="selectedTilesForSwap().has(tile.tileId)"
+                  (click)="toggleTileSelection(tile.tileId)"
+                >
+                  <span class="letter">{{ def?.valueText }}</span>
+                  <span class="points">{{ def?.basePoints }}</span>
+                </div>
+              }
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      }
     </main>
     <div class="action-buttons">
       @if (isMyTurn()) {

@@ -6,5 +6,6 @@ public record MoveRequestModel(
 
 public record TilePlacementModel(
     Guid TileId,
-    Guid CellId
+    Guid CellId,
+    Guid? SelectedValueId
 );

@@ -7,6 +7,7 @@ using WebGame.Application.Games;
 using WebGame.Application.Languages;
 using WebGame.Application.Lobbies;
 using WebGame.Application.Services;
+using WebGame.BackgroundServices;
 using WebGame.Domain.Interfaces;
 using WebGame.Domain.Interfaces.Games;
 using WebGame.Domain.Interfaces.Languages;
@@ -42,7 +43,8 @@ public static class ServiceCollectionExtensions
             services
                 .AddSingleton<IGameEngineFactory, GameEngineFactory>()
                 .AddSingleton<IBoardGenerator, BoardGenerator>();
-            
+
+            services.AddHostedService<GameRulesTickService>();
             
             return services;
         }

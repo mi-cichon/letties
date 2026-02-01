@@ -6,6 +6,9 @@ public record PlayerHandDetails(
 
 public record PlayerScoreDto(
     Guid PlayerId,
+    string PlayerName,
     int TotalPoints,
-    int TilesRemainingInHand
+    int TilesRemainingInHand,
+    TimeSpan TimeRemaining,
+    bool TimeDepleted
 );

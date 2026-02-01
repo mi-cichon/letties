@@ -1,4 +1,5 @@
 ﻿using WebGame.Domain.Interfaces.Games;
+using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Languages;
 using WebGame.Domain.Interfaces.Lobbies.Details;
 
@@ -8,13 +9,14 @@ public class GameEngineFactory(
     IGameLanguageProviderFactory gameLanguageProviderFactory,
     IBoardGenerator boardGenerator) : IGameEngineFactory
 {
-    public ILetterGameEngine CreateEngine(LobbySettings settings, List<Guid> playerIds, Action onStateChanged)
+    public ILetterGameEngine CreateEngine(LobbySettings settings, List<LobbyPlayerDetails> players, Action onStateChanged, Action<GameFinishedDetails> onGameFinished)
     {
         return new LetterGameEngine(
             gameLanguageProviderFactory,
             boardGenerator,
             settings, 
-            playerIds,
-            onStateChanged);
+            players,
+            onStateChanged,
+            onGameFinished);
     }
 }

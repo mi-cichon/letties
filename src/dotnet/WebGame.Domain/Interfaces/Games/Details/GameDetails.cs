@@ -6,6 +6,7 @@ public record GameDetails(
     BoardContentDetails BoardContent,
     List<PlayerScoreDto> Scores,
     Guid CurrentTurnPlayerId,
+    DateTimeOffset CurrentTurnStartedAt,
     PlayerHandDetails? MyHand,
     int TilesRemainingInBag
 );
