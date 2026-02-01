@@ -1,5 +1,9 @@
 @if (gameState(); as state) {
-  <div class="game-layout animate-in" cdkDropListGroup>
+  <div
+    class="game-layout animate-in"
+    [style.--grid-size]="state.layout?.width || 15"
+    cdkDropListGroup
+  >
     <aside class="game-sidebar">
       <div class="sidebar-header">
         <h2>{{ lobbyId() | lobbyName }}</h2>
@@ -39,84 +43,95 @@
     </aside>
 
     <main class="board-area">
-      <div
-        class="board-wrapper"
-        [style.--grid-cols]="state.layout?.width || 15"
-        [style.--grid-rows]="state.layout?.height || 15"
-      >
-        <div class="board">
-          @for (cell of state.layout!.cells; track cell.id) {
-            @let placedTile = placedTilesMap().get(cell.id!);
-            @let localTileId = localPlacements().get(cell.id!);
+      <div class="board-wrapper">
+        <div class="board-container">
+          <div
+            class="board"
+            [style.--grid-cols]="state.layout?.width || 15"
+            [style.--grid-rows]="state.layout?.height || 15"
+          >
+            @for (cell of state.layout!.cells; track cell.id) {
+              @let placedTile = placedTilesMap().get(cell.id!);
+              @let localTileId = localPlacements().get(cell.id!);
 
-            <div
-              class="cell"
-              [class]="'cell-type-' + cell.type"
-              cdkDropList
-              [cdkDropListDisabled]="!isMyTurn()"
-              [cdkDropListEnterPredicate]="canDropOnBoard"
-              [cdkDropListData]="cell.id!"
-              (cdkDropListDropped)="onDropToBoard($event)"
-              [attr.data-cell-id]="cell.id!"
-            >
-              @if (!placedTile && !localTileId) {
-                <span class="cell-label">{{ cell.type! | cellLabel }}</span>
-              }
+              <div
+                class="cell"
+                [class]="'cell-type-' + cell.type"
+                cdkDropList
+                [cdkDropListDisabled]="!isMyTurn()"
+                [cdkDropListEnterPredicate]="canDropOnBoard"
+                [cdkDropListData]="cell.id!"
+                (cdkDropListDropped)="onDropToBoard($event)"
+                [attr.data-cell-id]="cell.id!"
+              >
+                @if (!placedTile && !localTileId) {
+                  <span class="cell-label">{{ cell.type! | cellLabel }}</span>
+                }
 
-              @if (placedTile || localTileId) {
-                @let vId = placedTile?.valueId || getTileValueIdFromHand(localTileId!);
-                @let def = tileDefsMap().get(vId!);
+                @if (placedTile || localTileId) {
+                  @let vId = placedTile?.valueId || getTileValueIdFromHand(localTileId!);
+                  @let def = tileDefsMap().get(vId!);
 
-                <div
-                  class="tile"
-                  [class.placed]="!!placedTile"
-                  [class.local]="!!localTileId"
-                  [cdkDragDisabled]="!!placedTile"
-                  cdkDrag
-                  [cdkDragData]="localTileId"
-                >
-                  @let sel = localSelectedValues().get(cell.id!);
-                  @if (sel) {
-                    <span class="letter">{{ tileDefsMap().get(sel)?.valueText }}</span>
-                    <span class="blank-indicator">?</span>
-                  } @else if (placedTile?.selectedValueId) {
-                    <span class="letter">{{
-                      tileDefsMap().get(placedTile?.selectedValueId!)?.valueText
-                    }}</span>
-                    <span class="blank-indicator">?</span>
-                  } @else {
-                    <span class="letter">{{ def?.valueText }}</span>
-                  }
-                  <span class="points">{{ def?.basePoints }}</span>
-                  <div *cdkDragPlaceholder></div>
-                </div>
-                @if (def?.valueText === '?') {
-                  @if (activeBlankPickerCell() === cell.id! && blankPickerPos()) {
-                    <div
-                      class="blank-picker"
-                      [style.left.px]="blankPickerPos()?.left"
-                      [style.top.px]="blankPickerPos()?.top"
-                    >
-                      @for (opt of blankOptions(); track opt.valueId) {
-                        <button class="blank-btn" (click)="chooseBlankValue(cell.id!, opt.valueId)">
-                          {{ opt.text }}
-                        </button>
-                      }
-                      <button class="blank-clear" (click)="clearBlankSelection(cell.id!)">×</button>
+                  <div
+                    class="tile"
+                    [class.placed]="!!placedTile"
+                    [class.local]="!!localTileId"
+                    [cdkDragDisabled]="!!placedTile"
+                    cdkDrag
+                    [cdkDragData]="localTileId"
+                  >
+                    @let sel = localSelectedValues().get(cell.id!);
+                    @if (sel) {
+                      <span class="letter">{{ tileDefsMap().get(sel)?.valueText }}</span>
+                      <span class="blank-indicator">?</span>
+                    } @else if (placedTile?.selectedValueId) {
+                      <span class="letter">{{
+                        tileDefsMap().get(placedTile?.selectedValueId!)?.valueText
+                      }}</span>
+                      <span class="blank-indicator">?</span>
+                    } @else {
+                      <span class="letter">{{ def?.valueText }}</span>
+                    }
+                    <span class="points">{{ def?.basePoints }}</span>
+                    <div *cdkDragPlaceholder></div>
+                  </div>
+                  @if (def?.valueText === '?' && activeBlankPickerCell() === cell.id!) {
+                    <div class="blank-picker">
+                      <div class="blank-grid">
+                        @for (opt of blankOptions(); track opt.valueId) {
+                          <button
+                            class="blank-btn"
+                            (click)="
+                              chooseBlankValue(cell.id!, opt.valueId); $event.stopPropagation()
+                            "
+                          >
+                            {{ opt.text }}
+                          </button>
+                        }
+                      </div>
+                      <button
+                        class="blank-clear"
+                        (click)="clearBlankSelection(cell.id!); $event.stopPropagation()"
+                      >
+                        ×
+                      </button>
                     </div>
                   }
                 }
-              }
-            </div>
-          }
+              </div>
+            }
+          </div>
         </div>
       </div>
+
       @if (amIPlaying()) {
         <footer class="hand-section">
           @if (lastError(); as error) {
-            <div class="move-error-popup animate-bounce-in">
-              <span class="icon">⚠️</span>
-              <span class="message">{{ 'lobby.errors.' + error | transloco }}</span>
+            <div class="move-error-toast animate-toast">
+              <div class="error-content">
+                <span class="icon">⚠️</span>
+                <span class="message">{{ 'lobby.errors.' + error | transloco }}</span>
+              </div>
               <button class="close-btn" (click)="lastError.set(null)">×</button>
             </div>
           }
@@ -145,6 +160,7 @@
                 >
                   <span class="letter">{{ def?.valueText }}</span>
                   <span class="points">{{ def?.basePoints }}</span>
+                  <div *cdkDragPlaceholder></div>
                 </div>
               }
             </div>
@@ -152,7 +168,8 @@
         </footer>
       }
     </main>
-    <div class="action-buttons">
+
+    <div class="action-sidebar">
       @if (isMyTurn()) {
         @if (isSwapMode() && selectedTilesForSwap().size > 0) {
           <button (click)="confirmSwap()" class="btn-confirm">

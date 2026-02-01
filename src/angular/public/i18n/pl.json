@@ -57,7 +57,7 @@
       "WrongTurn": "To nie jest Twój ruch. Poczekaj na swoją kolej.",
       "CellOccupied": "To pole jest już zajęte.",
       "InvalidWord": "Podane słowo nie istnieje w słowniku.",
-      "TilesNotConnected": "Twoje słowo musi stykać się z literami na planszy (lub środkiem).",
+      "TilesNotConnected": "Twoje słowo musi stykać się z literami na planszy (lub polem ⭐).",
       "TilesNotInline": "Litery muszą tworzyć jedną linię bez przerw."
     }
   }

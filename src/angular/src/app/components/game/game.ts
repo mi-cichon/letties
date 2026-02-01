@@ -366,6 +366,7 @@ export class Game implements OnDestroy {
   }
 
   async passTurn() {
+    console.log('skip');
     if (!this.isMyTurn()) {
       return;
     }
@@ -391,24 +392,8 @@ export class Game implements OnDestroy {
   }
 
   openBlankPicker(cellId: string) {
+    console.log('open picker for cell:', cellId);
     this.activeBlankPickerCell.set(cellId);
-
-    // DOM may not be updated immediately after changing signals — wait a frame
-    requestAnimationFrame(() => {
-      try {
-        const el = document.querySelector(`[data-cell-id="${cellId}"]`) as HTMLElement | null;
-        if (!el) {
-          this.blankPickerPos.set(null);
-          return;
-        }
-        const r = el.getBoundingClientRect();
-        const left = Math.round(r.left + r.width / 2);
-        const top = Math.round(r.top + r.height / 2);
-        this.blankPickerPos.set({ left, top });
-      } catch {
-        this.blankPickerPos.set(null);
-      }
-    });
   }
 
   private remainingSeconds: Map<string, number> = new Map();

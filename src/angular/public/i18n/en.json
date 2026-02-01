@@ -57,7 +57,7 @@
       "WrongTurn": "It's not your turn. Please wait for your opponent.",
       "CellOccupied": "This cell is already occupied.",
       "InvalidWord": "The word provided does not exist in the dictionary.",
-      "TilesNotConnected": "Your tiles must be connected to letters on the board (or the center).",
+      "TilesNotConnected": "Your tiles must be connected to letters on the board (or the ⭐ tile).",
       "TilesNotInline": "Letters must form a single line without any gaps."
     }
   }
