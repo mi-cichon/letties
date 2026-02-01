@@ -1,22 +1,29 @@
 .lobby-container {
-  display: flex;
-  height: calc(100vh);
+  display: grid;
+  // min-content pozwala kolumnie dopasować się do szerokości app-chat
+  grid-template-columns: 1fr min-content;
+  height: 100vh;
+  transition: grid-template-columns 0.3s ease;
   background: #121212;
   color: #eee;
 }
 
 .lobby-main {
-  flex: 1;
+  // Usuwamy flex: 1, grid sam zajmie przestrzeń dzięki 1fr
   display: flex;
   flex-direction: column;
   padding: 0 2rem;
   overflow-y: auto;
+  min-width: 0; // Ważne dla stabilności grida
 }
 
 .lobby-sidebar {
-  width: 320px;
   background: #181818;
   border-left: 1px solid #2a2a2a;
   display: flex;
   flex-direction: column;
+  overflow: visible;
+
+  // KLUCZOWE POPRAWKI:
+  min-width: 0; // Pozwala gridowi zwęzić tę kolumnę poniżej 350px
 }

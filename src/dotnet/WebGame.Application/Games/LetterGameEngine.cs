@@ -174,7 +174,7 @@ public class LetterGameEngine : ILetterGameEngine
         }
         var currentTurnStartedAt = _currentTurnStartedAt;
         RotateTurn();
-        SubtractTime(playerId, currentTurnStartedAt);
+        SubtractTime(playerId, currentTurnStartedAt, false);
         NotifyStateChanged();
     }
     
@@ -226,7 +226,7 @@ public class LetterGameEngine : ILetterGameEngine
 
         var currentTurnStartedAt = _currentTurnStartedAt;
         RotateTurn();
-        SubtractTime(playerId, currentTurnStartedAt);
+        SubtractTime(playerId, currentTurnStartedAt, false);
         NotifyStateChanged();
     }
 
@@ -252,7 +252,6 @@ public class LetterGameEngine : ILetterGameEngine
         {
             FinishGame();
         }
-
     }
 
     private MoveResult ExecuteMove(Guid playerId, List<TilePlacementModel> placements, List<TileInstanceDetails> tiles)
@@ -324,11 +323,9 @@ public class LetterGameEngine : ILetterGameEngine
 
         var currentTurnStartedAt = _currentTurnStartedAt;
         RotateTurn();
-        SubtractTime(playerId, currentTurnStartedAt);
+        SubtractTime(playerId, currentTurnStartedAt, true);
 
         NotifyStateChanged();
-        
-        SubtractTime(playerId, lastTurnStartTime);
 
         return new MoveResult(true, null, null);
     }
@@ -519,7 +516,7 @@ public class LetterGameEngine : ILetterGameEngine
         FinishGame();
     }
 
-    private void SubtractTime(Guid playerId, DateTimeOffset lastTurnStartTime)
+    private void SubtractTime(Guid playerId, DateTimeOffset lastTurnStartTime, bool playerMoved)
     {
         var timeElapsed = DateTimeOffset.UtcNow - lastTurnStartTime;
         var remainingTime = _playerHands[playerId].RemainingTime - timeElapsed;
@@ -531,22 +528,28 @@ public class LetterGameEngine : ILetterGameEngine
             return;
         }
 
-        if (remainingTime < TimeSpan.FromMinutes(1))
+        if (playerMoved && remainingTime < TimeSpan.FromMinutes(1))
         {
             remainingTime += TimeSpan.FromSeconds(TimeBelowMinuteBonusSeconds);
-            _playerHands[playerId].RemainingTime = remainingTime;
         }
+        
+        _playerHands[playerId].RemainingTime = remainingTime;
     }
 
     private void FinishGame()
     {
-        var topPlayer = _playerScores.OrderByDescending(p => p.Value).First();
-        
         var finishedAt = DateTimeOffset.UtcNow;
         
         var gameElapsedTime = finishedAt - _gameStartedAt;
         
-        var gameFinishedDetails = new GameFinishedDetails(topPlayer.Key, topPlayer.Value, gameElapsedTime, finishedAt);
+        var playersDetails = _gamePlayers.Select(x =>
+        {
+            var playerScore = _playerScores[x.PlayerId];
+            
+            return new GameFinishedPlayerDetails(x.PlayerId, x.PlayerName, playerScore);
+        }).ToList();
+        
+        var gameFinishedDetails = new GameFinishedDetails(playersDetails, gameElapsedTime, finishedAt);
         OnGameFinished.Invoke(gameFinishedDetails);
     }
 

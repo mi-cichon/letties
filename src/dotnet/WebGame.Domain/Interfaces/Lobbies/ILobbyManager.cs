@@ -9,7 +9,7 @@ public interface ILobbyManager
 {
     IReadOnlyList<GameLobbyItem> GetLobbies();
     Task<LobbyStateDetails> AssignPlayerToLobby(Guid playerId, Guid lobbyId, string playerConnectionId, string playerName);
-    Task LeaveLobby(Guid playerId);
+    Task LeaveLobby(Guid playerId, string playerConnectionId);
     Task PlayerDisconnected(string playerConnectionId);
     Task SendMessage(string playerConnectionId, string playerName, string message);
     Task<bool> JoinSeat(string playerConnectionId, Guid playerId, Guid seatId);

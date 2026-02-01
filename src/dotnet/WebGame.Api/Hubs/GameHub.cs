@@ -31,7 +31,7 @@ public class GameHub(ILobbyManager lobbyManager) : Hub
     public async Task LeaveLobby()
     {
         var playerId = Context.GetPlayerId();
-        await lobbyManager.LeaveLobby(playerId);
+        await lobbyManager.LeaveLobby(playerId, Context.ConnectionId);
     }
     
     public async Task<bool> EnterSeat(Guid seatId)

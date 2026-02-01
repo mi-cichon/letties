@@ -39,16 +39,17 @@ public class LobbyManager(IEnumerable<IGameLobby> gameLobbies) : ILobbyManager
         }
     }
 
-    public async Task LeaveLobby(Guid playerId)
+    public async Task LeaveLobby(Guid playerId, string playerConnectionId)
     {
-        var playerLobby = gameLobbies.SingleOrDefault(x => x.IsPlayerInLobby(playerId));
+        var lobby = gameLobbies.FirstOrDefault(lobby => lobby.IsPlayerInLobby(playerId));
 
-        if (playerLobby == null)
+        if (lobby == null)
         {
             return;
         }
-
-        await playerLobby.LeaveLobby(playerId);
+        
+        await lobby.LeaveLobby(playerId);
+        _playerAssignedLobbies.TryRemove(playerConnectionId, out _);
     }
 
     public async Task SendMessage(string playerConnectionId, string playerName, string message)

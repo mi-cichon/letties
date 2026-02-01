@@ -1,4 +1,4 @@
-import { Component, input, output, viewChild, ElementRef, effect } from '@angular/core';
+import { Component, input, output, viewChild, ElementRef, effect, signal } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
@@ -13,6 +13,12 @@ export class Chat {
   onSendMessage = output<string>();
 
   scrollContainer = viewChild<ElementRef>('scrollContainer');
+
+  isCollapsed = signal(false);
+
+  toggleCollapse() {
+    this.isCollapsed.update((v) => !v);
+  }
 
   constructor() {
     effect(() => {

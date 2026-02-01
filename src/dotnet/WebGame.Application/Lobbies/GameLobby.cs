@@ -12,7 +12,7 @@ using WebGame.Domain.Interfaces.Lobbies.Models;
 
 namespace WebGame.Application.Lobbies;
 
-public class GameLobby(IGameContextService gameContextService, IGameEngineFactory gameEngineFactory) : IGameLobby
+public class GameLobby : IGameLobby
 {
     private readonly ConcurrentDictionary<Guid, LobbyPlayer> _players = new();
     
@@ -28,25 +28,36 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
     
     private GameFinishedDetails? GameFinishedDetails { get; set; }
     
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
 
-    private const int PostGameDurationSeconds = 30;
-    
-    private readonly ConcurrentDictionary<Guid, GameLobbySeat> _seats =
-        new()
-        {
-            [Guid.CreateVersion7()] = new GameLobbySeat(null, true, 1),
-            [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 2),
-            [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 3),
-            [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 4)
-        };
+    private const int PostGameDurationSeconds = 1800;
+
+    private static readonly ConcurrentDictionary<Guid, GameLobbySeat> DefaultLobbySeats = new()
+    {
+        [Guid.CreateVersion7()] = new GameLobbySeat(null, true, 1),
+        [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 2),
+        [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 3),
+        [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 4)
+    };
+
+    private ConcurrentDictionary<Guid, GameLobbySeat> _seats;
 
     #region Lobby State
     
     private static readonly LobbySettings DefaultLobbySettings = new(10, GameLanguage.Polish, 100, BoardType.Classic);
 
-    private LobbySettings _lobbySettings = DefaultLobbySettings;
-    
+    private LobbySettings _lobbySettings;
+    private readonly IGameContextService _gameContextService;
+    private readonly IGameEngineFactory _gameEngineFactory;
+
+    public GameLobby(IGameContextService gameContextService, IGameEngineFactory gameEngineFactory)
+    {
+        _gameContextService = gameContextService;
+        _gameEngineFactory = gameEngineFactory;
+        _lobbySettings = GetDefaultLobbySettings();
+        _seats = GetDefaultLobbySeats();
+    }
+
     private static readonly (int Min, int Max) SettingsTileRange = (50, 200);
     
     private static readonly (int Min, int Max) SettingsTimeBankRange = (3, 60);
@@ -57,8 +68,8 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
         _players.TryAdd(playerId, lobbyPlayer);
         
         await UpdateGroupWithLobbyState();
-        await gameContextService.AddToGroup(playerConnectionId, LobbyGroupName);
-        await gameContextService.NotifyGroup(LobbyGroupName, $"{playerName} has joined the lobby.");
+        await _gameContextService.AddToGroup(playerConnectionId, LobbyGroupName);
+        await _gameContextService.NotifyGroup(LobbyGroupName, $"{playerName} has joined the lobby.");
         
         
         var playerDetails = _players.Values.ToArray()
@@ -81,11 +92,11 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
 
     public async Task LeaveLobby(Guid playerId)
     {
-        await gameContextService.RemoveFromGroup(_players[playerId].PlayerConnectionId, LobbyGroupName);
+        await _gameContextService.RemoveFromGroup(_players[playerId].PlayerConnectionId, LobbyGroupName);
         
         if(_players.TryRemove(playerId, out var player))
         {
-            await gameContextService.NotifyGroup(LobbyGroupName, $"{player.PlayerName} has left the lobby.");
+            await _gameContextService.NotifyGroup(LobbyGroupName, $"{player.PlayerName} has left the lobby.");
         }
         
         var playerSeat = _seats.Select(x => new
@@ -99,12 +110,17 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
             playerSeat.Seat.PlayerId = null;
         }
         
+        if (State == GameLobbyState.Game && GameEngine != null)
+        {
+            GameEngine.SetPlayerOnline(playerId, false);
+        }
+        
         await UpdateGroupWithLobbyState();
     }
 
     public async Task SendMessage(string playerName, string message)
     {
-        await gameContextService.SendChatMessageToGroup(LobbyGroupName, playerName, message);
+        await _gameContextService.SendChatMessageToGroup(LobbyGroupName, playerName, message);
     }
 
     public async Task<bool> JoinSeat(Guid playerId, Guid seatId)
@@ -132,11 +148,6 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
     public async Task PlayerDisconnected(string connectionId)
     {
         var playerId = _players.SingleOrDefault(x => x.Value.PlayerConnectionId == connectionId).Key;
-        
-        if (State == GameLobbyState.Game && GameEngine != null)
-        {
-            GameEngine.SetPlayerOnline(playerId, false);
-        }
         
         await LeaveLobby(playerId);
     }
@@ -222,9 +233,9 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
         
         State = GameLobbyState.Game;
         
-        await gameContextService.NotifyGroup(LobbyGroupName, "Game has started.");
+        await _gameContextService.NotifyGroup(LobbyGroupName, "Game has started.");
         
-        GameEngine = gameEngineFactory.CreateEngine(
+        GameEngine = _gameEngineFactory.CreateEngine(
             _lobbySettings, 
             _players.Values.Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName)).ToList(), 
             () => _ = UpdateGroupWithGameState(),
@@ -315,12 +326,12 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
         
         var currentState = new LobbyStateDetails(LobbyId, playerDetails, seatDetails, _lobbySettings, State, GameFinishedDetails);
         
-        await gameContextService.SendToGroup(LobbyGroupName, GameMethods.LobbyUpdated, currentState);
+        await _gameContextService.SendToGroup(LobbyGroupName, GameMethods.LobbyUpdated, currentState);
     }
 
     private async Task UpdateGroupWithGameState()
     {
-        var updateTasks = _players.Select(x => gameContextService.SendToPlayer(x.Value.PlayerConnectionId,
+        var updateTasks = _players.Select(x => _gameContextService.SendToPlayer(x.Value.PlayerConnectionId,
             GameMethods.GameUpdated, GameEngine!.GetGameDetails(x.Key)));
         
         await Task.WhenAll(updateTasks);
@@ -334,12 +345,15 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
             {
                 return;
             }
+            
+            gameFinishedDetails.PostGameDurationSeconds = PostGameDurationSeconds;
+            
             GameFinishedDetails = gameFinishedDetails;
             State = GameLobbyState.PostGame;
             GameEngine = null;
         }
         
-        await gameContextService.NotifyGroup(LobbyGroupName, "Game has finished.");
+        await _gameContextService.NotifyGroup(LobbyGroupName, "Game has finished.");
         await UpdateGroupWithLobbyState();
         await WaitPostGame();
     }
@@ -355,8 +369,31 @@ public class GameLobby(IGameContextService gameContextService, IGameEngineFactor
         State = GameLobbyState.Lobby;
         GameEngine = null;
         GameFinishedDetails = null;
-        _seats.Clear();
-        _lobbySettings = DefaultLobbySettings;
+        _seats = GetDefaultLobbySeats();
+        _lobbySettings = GetDefaultLobbySettings();
         await UpdateGroupWithLobbyState();
     }
+    
+    private LobbySettings GetDefaultLobbySettings()
+    {
+        return new LobbySettings(
+            DefaultLobbySettings.TimeBank, 
+            DefaultLobbySettings.Language, 
+            DefaultLobbySettings.TilesCount, 
+            DefaultLobbySettings.BoardType);
+    }
+
+    private ConcurrentDictionary<Guid, GameLobbySeat> GetDefaultLobbySeats()
+    {
+        var seats = new ConcurrentDictionary<Guid, GameLobbySeat>();
+        
+        foreach (var seat in DefaultLobbySeats)
+        {
+            seats.TryAdd(seat.Key, seat.Value);
+        }
+        
+        return seats;
+    }
+    
+    
 }

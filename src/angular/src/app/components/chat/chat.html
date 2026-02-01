@@ -1,4 +1,11 @@
-<div class="chat-wrapper">
+<div class="chat-wrapper" [class.collapsed]="isCollapsed()">
+  <button
+    class="collapse-toggle"
+    (click)="toggleCollapse()"
+    [title]="isCollapsed() ? 'Pokaż czat' : 'Ukryj czat'"
+  >
+    {{ isCollapsed() ? '◀' : '▶' }}
+  </button>
   <div class="messages-container" #scrollContainer>
     @for (msg of messages(); track $index) {
       <div class="message">

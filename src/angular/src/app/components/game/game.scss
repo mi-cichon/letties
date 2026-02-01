@@ -116,7 +116,11 @@
     border-left-color: #f1c40f;
   }
   &.offline {
-    opacity: 0.5;
+    background: rgba(241, 15, 53, 0.205) !important;
+  }
+  &.depleted {
+    transform: translateX(-10px);
+    filter: grayscale(1);
   }
 
   .top-details {
@@ -566,7 +570,7 @@
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 99999; // Absolutnie nad wszystkim (nawet nad pickerem)
+  z-index: 99999;
 
   display: flex;
   align-items: center;
@@ -575,7 +579,7 @@
 
   min-width: 300px;
   max-width: 90vw;
-  background: #c0392b; // Solidna czerwień
+  background: #c0392b;
   color: white;
   padding: 12px 20px;
   border-radius: 8px;

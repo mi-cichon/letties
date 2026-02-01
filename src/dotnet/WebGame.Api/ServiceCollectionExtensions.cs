@@ -20,8 +20,8 @@ public static class ServiceCollectionExtensions
 {
     public static WebApplication MapHubs(this WebApplication app)
     {
-        app.MapHub<GameHub>("/gameHub");
-        app.MapHub<LoginHub>("/loginHub");
+        app.MapHub<GameHub>("/api/gameHub");
+        app.MapHub<LoginHub>("/api/loginHub");
 
         return app;
     }

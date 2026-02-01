@@ -19,4 +19,21 @@
       <ProjectReference Include="..\WebGame.Application\WebGame.Application.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="wwwroot\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\media\nunito-cyrillic-400-normal.woff" />
+      <_ContentIncludedByDefault Remove="wwwroot\media\nunito-cyrillic-400-normal.woff2" />
+      <_ContentIncludedByDefault Remove="wwwroot\media\nunito-cyrillic-ext-400-normal.woff" />
+      <_ContentIncludedByDefault Remove="wwwroot\media\nunito-cyrillic-ext-400-normal.woff2" />
+      <_ContentIncludedByDefault Remove="wwwroot\media\nunito-latin-400-normal.woff" />
+      <_ContentIncludedByDefault Remove="wwwroot\media\nunito-latin-400-normal.woff2" />
+      <_ContentIncludedByDefault Remove="wwwroot\media\nunito-latin-ext-400-normal.woff" />
+      <_ContentIncludedByDefault Remove="wwwroot\media\nunito-latin-ext-400-normal.woff2" />
+      <_ContentIncludedByDefault Remove="wwwroot\media\nunito-vietnamese-400-normal.woff" />
+      <_ContentIncludedByDefault Remove="wwwroot\media\nunito-vietnamese-400-normal.woff2" />
+    </ItemGroup>
+
 </Project>

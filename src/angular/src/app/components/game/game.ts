@@ -58,6 +58,8 @@ export class Game implements OnDestroy {
   myId = signal(getPlayerId());
 
   private gameHubService = inject(GameHubService);
+  private turnNotificationSound = new Audio('/assets/sounds/turn-start.mp3');
+  private lastNotifiedTurnStartedAt = '';
 
   gameState = this.gameHubService.gameState;
   lobbyState = this.gameHubService.lobbyState.asReadonly();
@@ -145,6 +147,31 @@ export class Game implements OnDestroy {
 
   selectedTilesForSwap = signal<Set<string>>(new Set());
   isSwapMode = signal<boolean>(false);
+
+  constructor() {
+    effect(() => {
+      const state = this.gameState();
+      const myId = this.myId();
+      const turnStart = state?.currentTurnStartedAt || '';
+
+      if (turnStart !== this.lastNotifiedTurnStartedAt) {
+        this.resetLocalMove();
+      }
+
+      if (state?.currentTurnPlayerId === myId && turnStart !== this.lastNotifiedTurnStartedAt) {
+        this.lastNotifiedTurnStartedAt = turnStart;
+        this.playTurnSound();
+      }
+    });
+  }
+
+  private playTurnSound() {
+    try {
+      this.turnNotificationSound.volume = 0.15;
+      this.turnNotificationSound.currentTime = 0;
+      this.turnNotificationSound.play();
+    } catch (e) {}
+  }
 
   getTileValueIdFromHand(tileId: string | null): string | undefined {
     if (!tileId) return undefined;

@@ -52,8 +52,6 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UsePathBase("/api");
-
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -61,23 +59,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
-
 app.UseCors("Policy");
-
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHubs();
 app.MapControllers();
 
-app.Run();
-
-app.UseAuthorization();
-
-app.MapHubs();
+app.MapFallbackToFile("index.html");
 
 app.Run();
