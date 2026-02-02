@@ -2,6 +2,7 @@
 using WebGame.Domain.Interfaces.Games.Enums;
 using WebGame.Domain.Interfaces.Languages;
 using WebGame.Domain.Interfaces.Lobbies.Enums;
+using WebGame.Domain.Structures;
 
 namespace WebGame.Application.Languages;
 
@@ -31,5 +32,10 @@ public class PolishLanguageProvider : IGameLanguageProvider
     public IReadOnlyList<LetterTileItem> GetTileDefinitions()
     {
         return _tileDefinitions;
+    }
+
+    public WordTrie GetWordTrie()
+    {
+        return PolishLanguageAssets.Dictionary;
     }
 }

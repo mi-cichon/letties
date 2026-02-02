@@ -10,9 +10,12 @@ using WebGame.Application.Services;
 using WebGame.BackgroundServices;
 using WebGame.Domain.Interfaces;
 using WebGame.Domain.Interfaces.Games;
+using WebGame.Domain.Interfaces.Games.MoveCalculations;
 using WebGame.Domain.Interfaces.Languages;
 using WebGame.Domain.Interfaces.Lobbies;
 using WebGame.Hubs;
+using WebGame.Application.Bots;
+using WebGame.Domain.Interfaces.Bots;
 
 namespace WebGame;
 
@@ -36,15 +39,20 @@ public static class ServiceCollectionExtensions
                 .AddTransient<IAuthorizationService, AuthorizationService>();
 
             services
+                .AddSingleton<IRandomNameService, RandomNameService>()
                 .AddSingleton<IGameLanguageProviderFactory, GameLanguageProviderFactory>()
                 .AddSingleton<IGameLanguageProvider, EnglishLanguageProvider>()
                 .AddSingleton<IGameLanguageProvider, PolishLanguageProvider>();
 
             services
+                .AddSingleton<IMoveValueCalculator, MoveValueCalculator>()
                 .AddSingleton<IGameEngineFactory, GameEngineFactory>()
-                .AddSingleton<IBoardGenerator, BoardGenerator>();
+                .AddSingleton<IBoardGenerator, BoardGenerator>()
+                .AddSingleton<IMoveSimulator, MoveSimulator>()
+                .AddSingleton<IBotStrategy, EasyBotStrategy>();
 
-            services.AddHostedService<GameRulesTickService>();
+            services
+                .AddHostedService<GameRulesTickService>();
             
             return services;
         }

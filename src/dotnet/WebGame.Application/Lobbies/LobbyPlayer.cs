@@ -1,3 +1,5 @@
-﻿namespace WebGame.Application.Lobbies;
+﻿using WebGame.Domain.Interfaces.Bots;
 
-public record LobbyPlayer(Guid PlayerId, string PlayerConnectionId, string PlayerName);
+namespace WebGame.Application.Lobbies;
+
+public record LobbyPlayer(Guid PlayerId, string PlayerConnectionId, string PlayerName, bool IsBot, BotDifficulty? BotDifficulty);

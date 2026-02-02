@@ -1,4 +1,6 @@
-﻿public class TrieNode
+﻿namespace WebGame.Domain.Structures;
+
+public class TrieNode
 {
     public Dictionary<char, TrieNode> Children = new();
     public bool IsEndOfWord;
@@ -7,6 +9,8 @@
 public class WordTrie
 {
     private readonly TrieNode _root = new();
+
+    public TrieNode Root => _root;
 
     public void Insert(string word)
     {

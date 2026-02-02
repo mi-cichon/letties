@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { getGameHubUrl } from '../core/utils/api-url-builder';
 import {
+  BotDifficulty,
   GameDetails,
   GameLobbyItem,
   GameLobbyState,
@@ -142,6 +143,24 @@ export class GameHubService {
       return await this.hubConnection.invoke('UpdateLobbySettings', settingsModel);
     } catch (err) {
       console.error('Error invoking LeaveSeat: ', err);
+      return await Promise.reject();
+    }
+  }
+
+  public async addBot(seatId: string, botDifficulty: BotDifficulty): Promise<void> {
+    try {
+      return await this.hubConnection.invoke('AddBot', seatId, botDifficulty);
+    } catch (err) {
+      console.error('Error invoking AddBot: ', err);
+      return await Promise.reject();
+    }
+  }
+
+  public async removeBot(seatId: string): Promise<void> {
+    try {
+      return await this.hubConnection.invoke('RemoveBot', seatId);
+    } catch (err) {
+      console.error('Error invoking RemoveBot: ', err);
       return await Promise.reject();
     }
   }

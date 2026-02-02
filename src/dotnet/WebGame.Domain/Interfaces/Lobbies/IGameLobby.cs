@@ -1,4 +1,5 @@
-﻿using WebGame.Domain.Interfaces.Games.Details;
+﻿using WebGame.Domain.Interfaces.Bots;
+using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.Models;
 using WebGame.Domain.Interfaces.Lobbies.Details;
 using WebGame.Domain.Interfaces.Lobbies.Enums;
@@ -20,6 +21,8 @@ public interface IGameLobby
     bool IsPlayerInLobby(Guid playerId);
     Task LeaveSeat(Guid playerId);
     Task UpdateLobbySettings(Guid playerId, LobbySettingsModel settingsModel);
+    Task AddBotToLobby(Guid addingPlayerId, Guid seatId, BotDifficulty difficulty);
+    Task RemoveBotFromLobby(Guid removingPlayerId, Guid seatId);
     #endregion
     #region Game State
     Task StartGame(Guid playerId);

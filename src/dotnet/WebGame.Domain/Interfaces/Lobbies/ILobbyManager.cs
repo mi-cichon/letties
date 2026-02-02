@@ -1,6 +1,8 @@
-﻿using WebGame.Domain.Interfaces.Games.Details;
+﻿using WebGame.Domain.Interfaces.Bots;
+using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.Models;
 using WebGame.Domain.Interfaces.Lobbies.Details;
+using WebGame.Domain.Interfaces.Lobbies.Enums;
 using WebGame.Domain.Interfaces.Lobbies.Models;
 
 namespace WebGame.Domain.Interfaces.Lobbies;
@@ -20,4 +22,6 @@ public interface ILobbyManager
     MoveResult HandleMove(string playerConnectionId, Guid playerId, MoveRequestModel request);
     void HandleSwapTile(string playerConnectionId, Guid playerId, List<Guid> tileIdsToSwap);
     void HandleSkipTurn(string playerConnectionId, Guid playerId);
+    Task AddBotToLobby(string playerConnectionId, Guid playerId, Guid seatId, BotDifficulty difficulty);
+    Task RemoveBotFromLobby(string playerConnectionId, Guid playerId, Guid seatId);
 }

@@ -2,13 +2,14 @@ import { Component, inject, signal, OnInit, OnDestroy, computed, input } from '@
 import { GameHubService } from '../../services/game-hub-service';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { getPlayerId } from '../../core/utils/token-utils';
-import { BoardType, GameLanguage } from '../../api';
+import { BoardType, BotDifficulty, GameLanguage } from '../../api';
+import { IsBotPipe } from './pipes/is-bot-pipe';
 
 @Component({
   selector: 'app-lobby',
   templateUrl: './lobby.html',
   styleUrl: './lobby.scss',
-  imports: [TranslocoPipe],
+  imports: [TranslocoPipe, IsBotPipe],
 })
 export class Lobby {
   private gameHubService = inject(GameHubService);
@@ -72,5 +73,13 @@ export class Lobby {
 
   async onStartGame() {
     await this.gameHubService.startGame();
+  }
+
+  async onAddBot(seatId: string) {
+    await this.gameHubService.addBot(seatId, BotDifficulty.Easy);
+  }
+
+  async onRemoveBot(seatId: string) {
+    await this.gameHubService.removeBot(seatId);
   }
 }

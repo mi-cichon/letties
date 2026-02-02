@@ -1,10 +1,12 @@
 ﻿using System.Collections.Concurrent;
 using WebGame.Application.Constants;
 using WebGame.Domain.Interfaces;
+using WebGame.Domain.Interfaces.Bots;
 using WebGame.Domain.Interfaces.Games;
 using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.Enums;
 using WebGame.Domain.Interfaces.Games.Models;
+using WebGame.Domain.Interfaces.Languages;
 using WebGame.Domain.Interfaces.Lobbies;
 using WebGame.Domain.Interfaces.Lobbies.Details;
 using WebGame.Domain.Interfaces.Lobbies.Enums;
@@ -34,10 +36,10 @@ public class GameLobby : IGameLobby
 
     private static readonly ConcurrentDictionary<Guid, GameLobbySeat> DefaultLobbySeats = new()
     {
-        [Guid.CreateVersion7()] = new GameLobbySeat(null, true, 1),
-        [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 2),
-        [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 3),
-        [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 4)
+        [Guid.CreateVersion7()] = new GameLobbySeat(null, true, 1, false, null),
+        [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 2, false, null),
+        [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 3, false, null),
+        [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 4, false, null)
     };
 
     private ConcurrentDictionary<Guid, GameLobbySeat> _seats;
@@ -49,11 +51,13 @@ public class GameLobby : IGameLobby
     private LobbySettings _lobbySettings;
     private readonly IGameContextService _gameContextService;
     private readonly IGameEngineFactory _gameEngineFactory;
+    private readonly IRandomNameService _randomNameService;
 
-    public GameLobby(IGameContextService gameContextService, IGameEngineFactory gameEngineFactory)
+    public GameLobby(IGameContextService gameContextService, IGameEngineFactory gameEngineFactory, IRandomNameService randomNameService)
     {
         _gameContextService = gameContextService;
         _gameEngineFactory = gameEngineFactory;
+        _randomNameService = randomNameService;
         _lobbySettings = GetDefaultLobbySettings();
         _seats = GetDefaultLobbySeats();
     }
@@ -64,7 +68,7 @@ public class GameLobby : IGameLobby
     
     public async Task<LobbyStateDetails> AssignPlayer(Guid playerId, string playerConnectionId, string playerName)
     {
-        var lobbyPlayer = new LobbyPlayer(playerId, playerConnectionId, playerName);
+        var lobbyPlayer = new LobbyPlayer(playerId, playerConnectionId, playerName, false, null);
         _players.TryAdd(playerId, lobbyPlayer);
         
         await UpdateGroupWithLobbyState();
@@ -73,7 +77,7 @@ public class GameLobby : IGameLobby
         
         
         var playerDetails = _players.Values.ToArray()
-            .Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName))
+            .Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName, x.IsBot, x.BotDifficulty))
             .ToArray();
         
         var seatDetails = _seats
@@ -195,6 +199,63 @@ public class GameLobby : IGameLobby
         await UpdateGroupWithLobbyState();
     }
 
+    public async Task AddBotToLobby(Guid addingPlayerId, Guid seatId, BotDifficulty difficulty)
+    {
+        if (!IsPlayerLobbyAdmin(addingPlayerId))
+        {
+            throw new InvalidOperationException("Only lobby admins can add bots to lobby.");
+        }
+
+        if (State != GameLobbyState.Lobby)
+        {
+            throw new InvalidOperationException("Bots can only be added while lobby is in lobby state.");
+        }
+        
+        var seat = _seats.GetValueOrDefault(seatId);
+        if (seat == null || seat.PlayerId != null || seat.IsAdmin)
+        {
+            throw new InvalidOperationException("Only non-admin seats can be assigned to bot players.");
+        }
+        var botName = _randomNameService.GetRandomBotName(_lobbySettings.Language);
+        var botPlayer = new LobbyPlayer(Guid.CreateVersion7(), string.Empty, $"Bot {botName}", true, difficulty);
+        seat.PlayerId = botPlayer.PlayerId;
+        seat.IsBot = true;
+        seat.BotDifficulty = difficulty;
+        
+        _players.TryAdd(botPlayer.PlayerId, botPlayer);
+        await UpdateGroupWithLobbyState();
+    }
+
+    public async Task RemoveBotFromLobby(Guid removingPlayerId, Guid seatId)
+    {
+        if (!IsPlayerLobbyAdmin(removingPlayerId))
+        {
+            throw new InvalidOperationException("Only lobby admins can remove bots from lobby.");
+        }
+
+        if (State != GameLobbyState.Lobby)
+        {
+            throw new InvalidOperationException("Bots can only be removed while lobby is in lobby state.");
+        }
+        
+        var seat = _seats.GetValueOrDefault(seatId);
+        if (seat == null || seat.PlayerId == null || !seat.IsBot)
+        {
+            throw new InvalidOperationException("Only bot seats can be removed.");
+        }
+        
+        var botId = seat.PlayerId.Value;
+        
+        seat.PlayerId = null;
+        seat.IsBot = false;
+        seat.BotDifficulty = null;
+        
+        _players.TryRemove(botId, out _);
+        
+        await UpdateGroupWithLobbyState();
+    }
+    
+
     private bool ValidateLobbySettings(LobbySettingsModel settingsModel)
     {
         if (settingsModel.TimeBank > SettingsTimeBankRange.Max || settingsModel.TimeBank < SettingsTimeBankRange.Min)
@@ -237,7 +298,7 @@ public class GameLobby : IGameLobby
         
         GameEngine = _gameEngineFactory.CreateEngine(
             _lobbySettings, 
-            _players.Values.Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName)).ToList(), 
+            _players.Values.Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName, x.IsBot, x.BotDifficulty)).ToList(), 
             () => _ = UpdateGroupWithGameState(),
             gameFinishedDetails => _ = FinishGame(gameFinishedDetails));
         
@@ -317,7 +378,7 @@ public class GameLobby : IGameLobby
     private async Task UpdateGroupWithLobbyState()
     {
         var playerDetails = _players.Values.ToArray()
-            .Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName))
+            .Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName, x.IsBot, x.BotDifficulty))
             .ToArray();
         
         var seatDetails = _seats
@@ -331,8 +392,10 @@ public class GameLobby : IGameLobby
 
     private async Task UpdateGroupWithGameState()
     {
-        var updateTasks = _players.Select(x => _gameContextService.SendToPlayer(x.Value.PlayerConnectionId,
-            GameMethods.GameUpdated, GameEngine!.GetGameDetails(x.Key)));
+        var updateTasks = _players
+            .Where(x => !x.Value.IsBot)
+            .Select(x => _gameContextService.SendToPlayer(x.Value.PlayerConnectionId,
+                GameMethods.GameUpdated, GameEngine!.GetGameDetails(x.Key)));
         
         await Task.WhenAll(updateTasks);
     }
@@ -389,7 +452,7 @@ public class GameLobby : IGameLobby
         
         foreach (var seat in DefaultLobbySeats)
         {
-            seats.TryAdd(seat.Key, seat.Value);
+            seats.TryAdd(seat.Key, new GameLobbySeat(seat.Value.PlayerId, seat.Value.IsAdmin, seat.Value.Order, seat.Value.IsBot, seat.Value.BotDifficulty));
         }
         
         return seats;

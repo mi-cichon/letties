@@ -1,7 +1,9 @@
-﻿using WebGame.Domain.Interfaces.Games;
+﻿using WebGame.Domain.Interfaces.Bots;
+using WebGame.Domain.Interfaces.Games;
 using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.Enums;
 using WebGame.Domain.Interfaces.Games.Models;
+using WebGame.Domain.Interfaces.Games.MoveCalculations;
 using WebGame.Domain.Interfaces.Languages;
 using WebGame.Domain.Interfaces.Lobbies.Details;
 
@@ -13,8 +15,10 @@ public class LetterGameEngine : ILetterGameEngine
     private readonly List<GamePlayer> _gamePlayers;
 
     private readonly IGameLanguageProvider _languageProvider;
+    private readonly IMoveValueCalculator _moveValueCalculator;
 
     private readonly BoardLayoutDetails _boardLayout;
+    private readonly IEnumerable<IBotStrategy> _botStrategies;
 
     private readonly List<PlacedTileDetails> _placedTiles = new();
     private readonly Dictionary<Guid, PlayerHand> _playerHands = new();
@@ -37,21 +41,31 @@ public class LetterGameEngine : ILetterGameEngine
     
     private int _consecutiveScorelessTurns = 0;
     private bool _gameFinished = false;
+    private bool _botPlaying = false;
     
-    private Lock _lock = new();
+    private readonly Lock _lock = new();
 
     public LetterGameEngine(
         IGameLanguageProviderFactory gameLanguageProviderFactory,
         IBoardGenerator boardGenerator,
+        IMoveValueCalculator moveValueCalculator,
         LobbySettings initialSettings,
         List<LobbyPlayerDetails> players,
         Action onStateChanged,
-        Action<GameFinishedDetails>  onGameFinished)
+        Action<GameFinishedDetails>  onGameFinished,
+        IEnumerable<IBotStrategy> botStrategies)
     {
+        _botStrategies = botStrategies;
         _initialSettings = initialSettings;
-        _gamePlayers = players.Select(x => new GamePlayer(x.PlayerId, x.PlayerName)).ToList();
+        _gamePlayers = players
+            .Select(x => new GamePlayer(x.PlayerId, x.PlayerName, x.IsBot, x.BotDifficulty))
+            .Shuffle()
+            .OrderBy(x => x.IsBot)
+            .ToList();
+        
         _languageProvider = gameLanguageProviderFactory.CreateProvider(initialSettings.Language);
         _boardLayout = boardGenerator.GenerateBoard(_initialSettings.BoardType);
+        _moveValueCalculator = moveValueCalculator;
 
         _tileDefinitions = _languageProvider.GetTileDefinitions();
         _tileDefById = _tileDefinitions.ToDictionary(d => d.ValueId, d => d);
@@ -184,6 +198,7 @@ public class LetterGameEngine : ILetterGameEngine
         RotateTurn();
         SubtractTime(playerId, currentTurnStartedAt, false);
         NotifyStateChanged();
+        HandleBotTurns();
     }
     
 
@@ -238,6 +253,7 @@ public class LetterGameEngine : ILetterGameEngine
         RotateTurn();
         SubtractTime(playerId, currentTurnStartedAt, false);
         NotifyStateChanged();
+        HandleBotTurns();
     }
 
     public void CheckGameRules()
@@ -289,14 +305,14 @@ public class LetterGameEngine : ILetterGameEngine
             return new MoveResult(false, MoveErrors.TilesNotInline, "Tiles are not in a line!");
         }
 
-        var formedWords = ScanForWords(proposedMoves);
+        var wordScanResult = _moveValueCalculator.ScanForWords(_boardLayout, _tileDefById, _placedTiles, proposedMoves);
 
-        if (formedWords.Count == 0)
+        if (wordScanResult.FormedWords.Count == 0)
         {
             return new MoveResult(false, MoveErrors.InvalidWord, "Move must create at least one word!");
         }
 
-        foreach (var word in formedWords)
+        foreach (var word in wordScanResult.FormedWords)
         {
             if (!_languageProvider.IsWordInLanguage(word.Text))
             {
@@ -317,19 +333,12 @@ public class LetterGameEngine : ILetterGameEngine
             _playerHands[playerId].Tiles.Remove(toRemove);
         }
 
-        var pointsEarned = formedWords.Sum(w => w.Points);
-
-        if (placements.Count == 7)
-        {
-            pointsEarned += 50;
-        }
-
-        _playerScores[playerId] += pointsEarned;
+        _playerScores[playerId] += wordScanResult.PointsEarned;
 
         var newTiles = DrawTiles(placements.Count);
         _playerHands[playerId].Tiles.AddRange(newTiles);
         
-        if (pointsEarned > 0)
+        if (wordScanResult.PointsEarned > 0)
         {
             _consecutiveScorelessTurns = 0;
         }
@@ -349,107 +358,10 @@ public class LetterGameEngine : ILetterGameEngine
         SubtractTime(playerId, currentTurnStartedAt, true);
 
         NotifyStateChanged();
+        
+        HandleBotTurns();
 
         return new MoveResult(true, null, null);
-    }
-
-    private List<ScannedWord> ScanForWords(List<ProposedMove> proposedMoves)
-    {
-        var words = new List<ScannedWord>();
-
-        var virtualBoard = _placedTiles.Select(pt =>
-        {
-            var cell = _boardLayout.Cells.First(c => c.Id == pt.CellId);
-
-            var baseDef = _tileDefById[pt.ValueId];
-            var displayValueId = pt.SelectedValueId ?? pt.ValueId;
-
-            return new TempTile(cell.X, cell.Y, baseDef.BasePoints, displayValueId, cell.Type, false);
-        }).Concat(proposedMoves.Select(m =>
-            new TempTile(m.Cell.X, m.Cell.Y, m.BaseDef.BasePoints, m.DisplayDef.ValueId, m.Cell.Type, true)
-        )).ToDictionary(t => (t.X, t.Y));
-
-        if (proposedMoves.Count == 1)
-        {
-            var hWord = ScanLine(proposedMoves[0].Cell.X, proposedMoves[0].Cell.Y, true, virtualBoard);
-            var vWord = ScanLine(proposedMoves[0].Cell.X, proposedMoves[0].Cell.Y, false, virtualBoard);
-
-            if (hWord != null) words.Add(hWord);
-            if (vWord != null) words.Add(vWord);
-
-            return words;
-        }
-
-        var mainIsHorizontal = proposedMoves.Count <= 1 || proposedMoves[0].Cell.Y == proposedMoves[1].Cell.Y;
-
-        var main = ScanLine(proposedMoves[0].Cell.X, proposedMoves[0].Cell.Y, mainIsHorizontal, virtualBoard);
-        if (main != null) words.Add(main);
-
-        words.AddRange(proposedMoves
-            .Select(move => ScanLine(move.Cell.X, move.Cell.Y, !mainIsHorizontal, virtualBoard))
-            .OfType<ScannedWord>());
-
-        return words;
-    }
-
-    private ScannedWord? ScanLine(int x, int y, bool horizontal, Dictionary<(int, int), TempTile> board)
-    {
-        var dx = horizontal ? 1 : 0;
-        var dy = horizontal ? 0 : 1;
-
-        int startX = x, startY = y;
-        while (board.ContainsKey((startX - dx, startY - dy)))
-        {
-            startX -= dx;
-            startY -= dy;
-        }
-
-        var text = "";
-        var wordScore = 0;
-        var wordMultiplier = 1;
-        var count = 0;
-
-        int currX = startX, currY = startY;
-        while (board.TryGetValue((currX, currY), out var tile))
-        {
-            text += _tileDefById[tile.DisplayValueId].ValueText;
-
-            var tilePoints = tile.Points;
-
-            if (tile.IsNew)
-            {
-                tilePoints *= GetLetterMultiplier(tile.Type);
-                wordMultiplier *= GetWordMultiplier(tile.Type);
-            }
-
-            wordScore += tilePoints;
-            currX += dx;
-            currY += dy;
-            count++;
-        }
-
-        return count > 1 ? new ScannedWord(text, wordScore * wordMultiplier, horizontal) : null;
-    }
-
-    private int GetLetterMultiplier(LetterCellType type)
-    {
-        return type switch
-        {
-            LetterCellType.DoubleLetter => 2,
-            LetterCellType.TripleLetter => 3,
-            _ => 1
-        };
-    }
-
-    private int GetWordMultiplier(LetterCellType type)
-    {
-        return type switch
-        {
-            LetterCellType.DoubleWord => 2,
-            LetterCellType.TripleWord => 3,
-            LetterCellType.Center => 2,
-            _ => 1
-        };
     }
 
     private bool ValidateConnectivity(List<ProposedMove> proposedMoves)
@@ -537,6 +449,96 @@ public class LetterGameEngine : ILetterGameEngine
         }
 
         FinishGame();
+    }
+
+    private void HandleBotTurns()
+    {
+        lock (_lock)
+        {
+            if (_botPlaying)
+            {
+                return;
+            }
+            
+            _botPlaying = true;
+            var currentTurnPlayer = _gamePlayers.First(p => p.PlayerId == _currentTurnPlayerId);
+            
+            if (!currentTurnPlayer.IsBot)
+            {
+                _botPlaying = false;
+                return;
+            }
+        
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await HandleBotMoveAsync(currentTurnPlayer.PlayerId);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                    lock (_lock)
+                    {
+                        if (_currentTurnPlayerId == currentTurnPlayer.PlayerId)
+                        {
+                            SubtractTime(currentTurnPlayer.PlayerId, _currentTurnStartedAt, false);
+                            RotateTurn();
+                            NotifyStateChanged();
+                        }
+                    }
+                }
+                finally
+                {
+                    lock (_lock)
+                    {
+                        _botPlaying = false;
+                    }
+                }
+            });
+        }
+    }
+
+    private async Task HandleBotMoveAsync(Guid playerBotId)
+    {
+        var botPlayer = _gamePlayers.First(p => p.PlayerId == playerBotId);
+        if (!botPlayer.IsBot)
+        {
+            throw new InvalidOperationException("Player is not a bot.");
+        }
+        
+        var botHand = _playerHands[playerBotId];
+        var botDifficulty = botPlayer.BotDifficulty!;
+
+        var strategy = _botStrategies.FirstOrDefault(s => s.Difficulty == botDifficulty);
+        if (strategy == null)
+        {
+            throw new InvalidOperationException($"No strategy found for difficulty {botDifficulty}");
+        }
+        
+        var botHandDetails = new PlayerHandDetails(
+            botHand.Tiles.Select(t => new TileInstanceDetails(t.TileId, t.ValueId, t.SelectedValueId)).ToList()
+        );
+
+        var action = await strategy.GetNextMove(_boardLayout, _placedTiles, botHandDetails, _initialSettings.Language);
+
+        lock (_lock)
+        {
+            if (_currentTurnPlayerId != playerBotId) return;
+
+            switch (action)
+            {
+                case MakeMoveAction moveAction:
+                    HandleMove(playerBotId, moveAction.Move);
+                    break;
+                case SwapTilesAction swapAction:
+                    HandleSwapTiles(playerBotId, swapAction.TileIds);
+                    break;
+                case SkipTurnAction:
+                    HandleSkipTurn(playerBotId);
+                    break;
+            }
+        }
     }
 
     private void SubtractTime(Guid playerId, DateTimeOffset lastTurnStartTime, bool playerMoved)
@@ -637,23 +639,5 @@ public class LetterGameEngine : ILetterGameEngine
         }
     }
 
-    private record ProposedMove(
-        BoardCellDetails Cell,
-        TileInstanceDetails Tile,
-        LetterTileItem BaseDef,
-        LetterTileItem DisplayDef);
-
-    private record ScannedWord(string Text, int Points, bool IsHorizontal);
-
-    private record TempTile(int X, int Y, int Points, Guid DisplayValueId, LetterCellType Type, bool IsNew);
-
-    private record GamePlayer(Guid PlayerId, string PlayerName);
-
-    private class PlayerHand(List<TileInstanceDetails> tiles, TimeSpan remainingTime, bool isOnline, bool timeDepleted)
-    {
-        public List<TileInstanceDetails> Tiles { get; set; } = tiles;
-        public TimeSpan RemainingTime { get; set; } = remainingTime;
-        public bool IsOnline { get; set; } = isOnline;
-        public bool TimeDepleted { get; set; } = timeDepleted;
-    };
+    private record GamePlayer(Guid PlayerId, string PlayerName, bool IsBot, BotDifficulty? BotDifficulty);
 }

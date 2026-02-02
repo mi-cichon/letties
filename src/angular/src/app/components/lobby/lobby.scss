@@ -28,6 +28,60 @@
     font-weight: bold;
     color: #e2c08d;
   }
+
+  .seat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start; // Wyrównanie do góry, jeśli nazwa jest długa
+    margin-bottom: 0.5rem; // Lekki odstęp od nazwy gracza
+
+    .bot-control {
+      // Wspólna baza - lekka i nowoczesna
+      font-family: inherit;
+      font-size: 0.7rem; // Mniejszy, dyskretny tekst
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px; // Nieco delikatniejsze zaokrąglenie
+      background: transparent; // Przezroczyste tło domyślnie
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      // Flex dla ładnego wyśrodkowania tekstu
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      &:active {
+        transform: translateY(1px); // Efekt wciśnięcia
+      }
+    }
+
+    .add-bot {
+      // Styl "Ghost Button" w kolorze złotym
+      border: 1px solid rgba(226, 192, 141, 0.3); // Bardzo subtelna ramka
+      color: #e2c08d;
+
+      &:hover {
+        border-color: #e2c08d;
+        background: rgba(226, 192, 141, 0.1); // Lekka złota poświata
+        box-shadow: 0 0 8px rgba(226, 192, 141, 0.15);
+      }
+    }
+
+    .remove-bot {
+      // Styl "Destructive" ale wygaszony
+      border: 1px solid rgba(255, 100, 100, 0.2);
+      color: #a87b7b; // Zgaszona czerwień/brąz, pasuje do ciemnego tła
+
+      &:hover {
+        border-color: #ff5555;
+        color: #ff5555;
+        background: rgba(255, 85, 85, 0.1); // Czerwona poświata ostrzegawcza
+      }
+    }
+  }
 }
 
 .join-seat-btn {

@@ -1,6 +1,7 @@
 ﻿using WebGame.Application.Languages.Assets;
 using WebGame.Domain.Interfaces.Languages;
 using WebGame.Domain.Interfaces.Lobbies.Enums;
+using WebGame.Domain.Structures;
 
 namespace WebGame.Application.Languages;
 
@@ -30,5 +31,10 @@ public class EnglishLanguageProvider : IGameLanguageProvider
     public IReadOnlyList<LetterTileItem> GetTileDefinitions()
     {
         return _tileDefinitions;
+    }
+
+    public WordTrie GetWordTrie()
+    {
+        return EnglishLanguageAssets.Dictionary;
     }
 }

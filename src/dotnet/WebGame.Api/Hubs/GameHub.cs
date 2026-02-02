@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SignalRSwaggerGen.Attributes;
+using WebGame.Domain.Interfaces.Bots;
 using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.Models;
 using WebGame.Domain.Interfaces.Lobbies;
 using WebGame.Domain.Interfaces.Lobbies.Details;
+using WebGame.Domain.Interfaces.Lobbies.Enums;
 using WebGame.Domain.Interfaces.Lobbies.Models;
 using WebGame.Extensions;
 
@@ -79,6 +81,16 @@ public class GameHub(ILobbyManager lobbyManager) : Hub
     public void SkipTurn()
     {
         lobbyManager.HandleSkipTurn(Context.ConnectionId, Context.GetPlayerId());
+    }
+
+    public async Task AddBot(Guid seatId, BotDifficulty difficulty)
+    {
+        await lobbyManager.AddBotToLobby(Context.ConnectionId, Context.GetPlayerId(), seatId, difficulty);
+    }
+
+    public async Task RemoveBot(Guid seatId)
+    {
+        await lobbyManager.RemoveBotFromLobby(Context.ConnectionId, Context.GetPlayerId(), seatId);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)

@@ -6,4 +6,4 @@ public enum BoardType
     Arena = 1,
     Wildlands = 2,
     Widelands = 3
-} 
+}

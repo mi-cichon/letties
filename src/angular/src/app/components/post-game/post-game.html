@@ -22,7 +22,12 @@
             {{ i + 1 }}
           }
         </span>
-        <span class="name">{{ player.playerName }}</span>
+        <span class="name"
+          >{{ player.playerName }}
+          @if (player.playerId! | isBot: lobbyState()!.players!) {
+            <span class="bot-icon" title="Bot">🤖</span>
+          }
+        </span>
         <span class="points">{{ player.playerPoints }} p.</span>
       </div>
     }

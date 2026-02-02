@@ -1,8 +1,10 @@
 ﻿using System.Collections.Concurrent;
+using WebGame.Domain.Interfaces.Bots;
 using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.Models;
 using WebGame.Domain.Interfaces.Lobbies;
 using WebGame.Domain.Interfaces.Lobbies.Details;
+using WebGame.Domain.Interfaces.Lobbies.Enums;
 using WebGame.Domain.Interfaces.Lobbies.Models;
 
 namespace WebGame.Application.Lobbies;
@@ -121,6 +123,22 @@ public class LobbyManager(IEnumerable<IGameLobby> gameLobbies) : ILobbyManager
         if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
         {
             gameLobby.HandleSkipTurn(playerId);
+        }
+    }
+
+    public async Task AddBotToLobby(string playerConnectionId, Guid playerId, Guid seatId, BotDifficulty difficulty)
+    {
+        if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
+        {
+            await gameLobby.AddBotToLobby(playerId, seatId, difficulty);
+        }
+    }
+
+    public async Task RemoveBotFromLobby(string playerConnectionId, Guid playerId, Guid seatId)
+    {
+        if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
+        {
+            await gameLobby.RemoveBotFromLobby(playerId, seatId);
         }
     }
 

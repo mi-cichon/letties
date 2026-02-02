@@ -3,6 +3,8 @@ using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.Enums;
 using WebGame.Domain.Interfaces.Lobbies.Enums;
 
+namespace WebGame.Application.Games;
+
 public class BoardGenerator : IBoardGenerator
 {
     public BoardLayoutDetails GenerateBoard(BoardType boardType)
