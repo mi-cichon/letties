@@ -26,13 +26,13 @@
           >
             <div class="player-info">
               <div class="top-details">
-                <span class="name"
-                  >{{ score.playerName }}
+                <span class="name">{{ score.playerName }} </span>
+                <span class="hand-indicator">
                   @if (score.playerId! | isBot: lobbyState()?.players!) {
                     <span class="bot-icon" title="Bot">🤖</span>
                   }
-                </span>
-                <span class="hand-indicator">🤚 {{ score.tilesRemainingInHand }}</span>
+                  🤚 {{ score.tilesRemainingInHand }}</span
+                >
               </div>
 
               <div class="details">

@@ -34,15 +34,13 @@ public class GameLobby : IGameLobby
 
     private const int PostGameDurationSeconds = 30;
 
-    private static readonly ConcurrentDictionary<Guid, GameLobbySeat> DefaultLobbySeats = new()
+    private readonly ConcurrentDictionary<Guid, GameLobbySeat> _seats = new()
     {
         [Guid.CreateVersion7()] = new GameLobbySeat(null, true, 1, false, null),
         [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 2, false, null),
         [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 3, false, null),
         [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 4, false, null)
     };
-
-    private ConcurrentDictionary<Guid, GameLobbySeat> _seats;
 
     #region Lobby State
     
@@ -59,7 +57,6 @@ public class GameLobby : IGameLobby
         _gameEngineFactory = gameEngineFactory;
         _randomNameService = randomNameService;
         _lobbySettings = GetDefaultLobbySettings();
-        _seats = GetDefaultLobbySeats();
     }
 
     private static readonly (int Min, int Max) SettingsTileRange = (50, 200);
@@ -432,8 +429,16 @@ public class GameLobby : IGameLobby
         State = GameLobbyState.Lobby;
         GameEngine = null;
         GameFinishedDetails = null;
-        _seats = GetDefaultLobbySeats();
+        SetDefaultLobbySeats();
         _lobbySettings = GetDefaultLobbySettings();
+
+        var botPlayers = _players.Where(x => x.Value.IsBot).Select(x => x.Value.PlayerId).ToList();
+
+        foreach (var botPlayer in botPlayers)
+        {
+            _players.TryRemove(botPlayer, out _);
+        }
+        
         await UpdateGroupWithLobbyState();
     }
     
@@ -446,16 +451,14 @@ public class GameLobby : IGameLobby
             DefaultLobbySettings.BoardType);
     }
 
-    private ConcurrentDictionary<Guid, GameLobbySeat> GetDefaultLobbySeats()
+    private void SetDefaultLobbySeats()
     {
-        var seats = new ConcurrentDictionary<Guid, GameLobbySeat>();
-        
-        foreach (var seat in DefaultLobbySeats)
+        foreach (var seat in _seats)
         {
-            seats.TryAdd(seat.Key, new GameLobbySeat(seat.Value.PlayerId, seat.Value.IsAdmin, seat.Value.Order, seat.Value.IsBot, seat.Value.BotDifficulty));
+            seat.Value.IsBot = false;
+            seat.Value.BotDifficulty = null;
+            seat.Value.PlayerId = null;
         }
-        
-        return seats;
     }
     
     

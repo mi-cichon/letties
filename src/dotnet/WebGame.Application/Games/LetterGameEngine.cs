@@ -37,7 +37,7 @@ public class LetterGameEngine : ILetterGameEngine
     private event Action OnStateChanged;
     private event Action<GameFinishedDetails>  OnGameFinished;
 
-    private const int TimeBelowMinuteBonusSeconds = 30;
+    private const int TimeBelowMinuteBonusSeconds = 15;
     
     private int _consecutiveScorelessTurns = 0;
     private bool _gameFinished = false;
@@ -274,7 +274,8 @@ public class LetterGameEngine : ILetterGameEngine
             FinishGame();
         }
 
-        if (_playerHands.All(h => !h.Value.IsOnline))
+        if (_playerHands.Where(x => !_gamePlayers.First(p => p.PlayerId == x.Key).IsBot)
+            .All(h => !h.Value.IsOnline))
         {
             FinishGame();
         }

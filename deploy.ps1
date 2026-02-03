@@ -6,5 +6,4 @@ tar --exclude="node_modules" --exclude="bin" --exclude="obj" --exclude=".git" -c
 
 scp p.tar.gz "${U}@${IP}:${D}/"
 
-ssh "${U}@${IP}" "cd ${D} && tar -xvzf p.tar.gz && rm p.tar.gz && docker compose up -d --build --force-recreate"
-rm p.tar.gz
+ssh "${U}@${IP}" "rm -rf ${D}/src && cd ${D} && tar -xvzf p.tar.gz && rm p.tar.gz && docker compose up -d --build --force-recreate"

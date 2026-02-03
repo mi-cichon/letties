@@ -1,4 +1,5 @@
 import { Pipe, PipeTransform } from '@angular/core';
+import { lobbyColors, lobbyIcons } from './lobby-names';
 
 @Pipe({
   name: 'lobbyName',
@@ -6,31 +7,6 @@ import { Pipe, PipeTransform } from '@angular/core';
   pure: true,
 })
 export class LobbyNamePipe implements PipeTransform {
-  private readonly colors = [
-    'Red',
-    'Blue',
-    'Gold',
-    'Silver',
-    'Jade',
-    'Neon',
-    'Royal',
-    'Dark',
-    'Amber',
-    'Coral',
-  ];
-  private readonly icons = [
-    'Falcon',
-    'Raven',
-    'Knight',
-    'Bishop',
-    'Ace',
-    'Crown',
-    'Star',
-    'Wolf',
-    'Tiger',
-    'Bear',
-  ];
-
   transform(id: string | undefined | null): string {
     if (!id || !id.includes('-')) return 'Unknown Room';
     const parts = id.split('-');
@@ -39,8 +15,8 @@ export class LobbyNamePipe implements PipeTransform {
     const seedColor = parseInt(randomPart.substring(0, 6), 16);
     const seedIcon = parseInt(randomPart.substring(6, 12), 16);
 
-    const color = this.colors[seedColor % this.colors.length];
-    const icon = this.icons[seedIcon % this.icons.length];
+    const color = lobbyColors[seedColor % lobbyColors.length];
+    const icon = lobbyIcons[seedIcon % lobbyIcons.length];
 
     return `${color} ${icon}`;
   }

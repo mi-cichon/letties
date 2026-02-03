@@ -13,7 +13,7 @@ public class EasyBotStrategy(
 {
     private readonly Random _random = new();
 
-    private const int MaxWordLength = 5;
+    private const int MaxWordLength = 6;
     private const double ExchangeProbability = 0.10;
     private const double SkipProbability = 0.01;
     private const int MaxLettersToUse = 7;
