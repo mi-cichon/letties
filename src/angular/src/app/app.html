@@ -16,7 +16,9 @@
   </div>
 </header>
 @if ($initiateLoginHub()) {
-  <router-outlet></router-outlet>
+  <div class="main-wrap">
+    <router-outlet></router-outlet>
+  </div>
 } @else {
   <app-loading-spinner></app-loading-spinner>
 }

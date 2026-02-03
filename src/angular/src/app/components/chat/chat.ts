@@ -1,4 +1,13 @@
-import { Component, input, output, viewChild, ElementRef, effect, signal } from '@angular/core';
+import {
+  Component,
+  input,
+  output,
+  viewChild,
+  ElementRef,
+  effect,
+  signal,
+  HostBinding,
+} from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 
 @Component({
@@ -14,10 +23,15 @@ export class Chat {
 
   scrollContainer = viewChild<ElementRef>('scrollContainer');
 
-  isCollapsed = signal(false);
+  isCollapsed = signal(true);
 
   toggleCollapse() {
     this.isCollapsed.update((v) => !v);
+  }
+
+  @HostBinding('class.collapsed')
+  get collapsedClass() {
+    return this.isCollapsed();
   }
 
   constructor() {

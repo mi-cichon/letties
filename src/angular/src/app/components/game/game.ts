@@ -34,6 +34,7 @@ import { LobbyNamePipe } from '../overview/pipes/lobby-name.pipe';
 import { GetPlayerTimePipe } from './pipes/get-player-time-pipe';
 import { GetPlayerOfflinePipe } from './pipes/get-player-offline-pipe';
 import { IsBotPipe } from '../lobby/pipes/is-bot-pipe';
+import { BoardPositionPipe } from './pipes/board-position-pipe';
 
 @Component({
   selector: 'app-game',
@@ -49,6 +50,7 @@ import { IsBotPipe } from '../lobby/pipes/is-bot-pipe';
     GetPlayerTimePipe,
     GetPlayerOfflinePipe,
     IsBotPipe,
+    BoardPositionPipe,
   ],
   templateUrl: './game.html',
   styleUrl: './game.scss',

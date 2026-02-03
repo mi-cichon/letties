@@ -1,4 +1,4 @@
-<div class="chat-wrapper" [class.collapsed]="isCollapsed()">
+<div class="chat-wrapper">
   <button
     class="collapse-toggle"
     (click)="toggleCollapse()"
@@ -6,14 +6,15 @@
   >
     {{ isCollapsed() ? '◀' : '▶' }}
   </button>
+
   <div class="messages-container" #scrollContainer>
     @for (msg of messages(); track $index) {
       <div class="message">
-        <span class="author" [style.color]="msg.color || '#e2c08d'"> {{ msg.author }}: </span>
+        <span class="author" [style.color]="msg.color || '#e2c08d'">{{ msg.author }}:</span>
         <span class="text">{{ msg.text }}</span>
       </div>
     } @empty {
-      <div class="chat-empty">
+      <div class="chat-empty" style="color: #666; text-align: center; margin-top: 2rem">
         <p>{{ 'chat.noMessages' | transloco }}</p>
       </div>
     }

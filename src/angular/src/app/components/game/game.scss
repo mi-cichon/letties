@@ -1,6 +1,6 @@
 :host {
   display: block;
-  height: 100vh; /* Ważne dla dziedziczenia wysokości */
+  height: 100%;
   overflow: hidden;
   user-select: none;
   background: #0f1113; /* Główne tło */
@@ -10,7 +10,7 @@
 .game-layout {
   display: grid;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   // Desktop: Sidebar (280px) | Board (auto) | Actions (140px)
   grid-template-columns: 280px minmax(0, 1fr) 140px;
   grid-template-rows: 100%;
@@ -20,8 +20,9 @@
 
   // Mobile / Tablet Vertical
   @media (max-width: 900px) {
+    height: 100%;
     grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr) auto; // Header, Board, Footer
+    grid-template-rows: auto minmax(0, 1fr) auto;
   }
 }
 
@@ -31,24 +32,27 @@
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   padding: 16px;
   display: flex;
+  overflow-y: auto;
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
-  z-index: 10;
+  z-index: 0;
 
   // Na mobilce sidebar jest tylko paskiem nagłówka
   @media (max-width: 900px) {
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     height: auto;
     padding: 8px 12px;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
     .sidebar-header {
+      width: 100%;
+      justify-content: center;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 2vw;
       h2 {
         margin: 0;
         font-size: 1rem;
@@ -59,6 +63,8 @@
     .scores-container {
       flex: 1;
       display: flex;
+      width: 100%;
+      justify-content: center;
       flex-direction: row;
       overflow-x: auto;
       gap: 8px;
@@ -161,16 +167,10 @@
 
   // Na mobilce przyciski pływają nad planszą po prawej
   @media (max-width: 900px) {
-    position: fixed;
-    bottom: 110px; // Trochę nad ręką gracza
-    right: 10px;
-    width: auto;
-    height: auto;
-    background: transparent;
-    border: none;
-    padding: 0;
-    z-index: 50;
+    flex-direction: row;
     pointer-events: none; // Przepuszcza kliknięcia pod spodem
+    flex-wrap: wrap;
+    padding: 0;
 
     button {
       pointer-events: auto;
@@ -234,8 +234,16 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 90vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
+
+  @media (max-width: 900px) {
+    height: 70vh;
+  }
+  @media (max-width: 500px) {
+    height: 60vh;
+  }
 }
 
 // Wrapper oddziela planszę od ręki
@@ -246,7 +254,6 @@
   justify-content: center;
   padding: 10px;
   min-height: 0; // Fix dla flexa
-  flex: 90;
 }
 
 // Kontener dla Container Queries
@@ -293,7 +300,7 @@
     background: #332d1b;
     .cell-label {
       color: #f1c40f;
-      font-size: 1.2rem;
+      font-size: 0.8rem;
       opacity: 1;
     }
   }
@@ -410,15 +417,15 @@
 
   // --- KAFELEK W RĘCE (NIE SKALOWALNY PRZEZ CQMIN) ---
   &.in-hand {
-    width: calc(100cqmin / var(--grid-size) * 0.7);
-    height: calc(100cqmin / var(--grid-size) * 0.7);
+    width: 4vmin;
+    height: 4vmin;
     flex-shrink: 0;
     .letter {
       font-size: 1.2rem;
       margin-top: -2px;
     }
     .points {
-      font-size: 0.75rem;
+      font-size: 0.6rem;
       bottom: 3px;
       right: 4px;
     }
@@ -444,7 +451,6 @@
   padding-bottom: 10px;
   z-index: 20;
   flex-shrink: 0; // Nie zgniatać ręki!
-  flex: 10;
 }
 
 .rack-container {
@@ -455,11 +461,10 @@
 .player-rack {
   display: flex;
   gap: 6px;
-  padding: 10px 20px 14px 20px;
+  padding: 1vmin 1vmin;
   background: #5d4037; // Drewniany stojak
   border-radius: 8px;
   box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.4);
-  min-height: 50px;
   align-items: center;
 }
 
@@ -491,11 +496,7 @@
 
 .blank-picker {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   z-index: 9999;
-
   background: rgba(15, 17, 19, 0.95); // Ciemne, lekko przezroczyste tło
   backdrop-filter: blur(8px); // Efekt oszronionego szkła
   border: 2px solid #f1c40f;
@@ -503,6 +504,22 @@
   border-radius: 12px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
   width: max-content;
+
+  &.top {
+    top: 100%;
+  }
+
+  &.bottom {
+    bottom: 100%;
+  }
+
+  &.left {
+    left: 100%;
+  }
+
+  &.right {
+    right: 100%;
+  }
 
   .blank-grid {
     display: grid;
@@ -513,12 +530,18 @@
 
   .blank-btn {
     // Tutaj stylizujemy przycisk, żeby udawał kafelek (tile)
-    width: 36px;
-    height: 36px;
+    width: 3vh;
+    height: 3vh;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+
+    @media (max-width: 500px) {
+      width: 4vw;
+      height: 4vw;
+      font-size: 2vw !important;
+    }
 
     // Twój styl kafelka:
     background: linear-gradient(135deg, #ebdcb2 0%, #cfa966 100%);
@@ -529,7 +552,7 @@
     // Tekst w środku:
     color: #3e2723;
     font-weight: 800;
-    font-size: 1.2rem;
+    font-size: 1rem;
     cursor: pointer;
     transition:
       transform 0.1s,
@@ -551,7 +574,7 @@
     background: #c0392b;
     color: white;
     border: none;
-    padding: 8px;
+    padding: 0.8vh;
     border-radius: 6px;
     font-weight: bold;
     text-transform: uppercase;
@@ -561,6 +584,11 @@
 
     &:hover {
       background: #e74c3c;
+    }
+
+    @media (max-width: 500px) {
+      padding: 0.2vh;
+      font-size: 0.6rem;
     }
   }
 }

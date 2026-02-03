@@ -1,150 +1,161 @@
-<div class="seats-layout">
-  <div class="seats-grid">
-    @for (seat of sortedSeats(); track seat.seatId) {
-      <div class="seat-card" [class.occupied]="seat.playerId">
-        <div class="seat-header">
-          <span class="seat-num"
-            >#{{ seat.order }}
-            @if (seat.isAdmin) {
-              <span class="admin-icon" title="Host">👑</span>
-            }
-            @if (seat.playerId! | isBot: lobbyState()!.players!) {
-              <span class="bot-icon" title="Bot">🤖</span>
-            }
-          </span>
+<div class="lobby-container">
+  <div class="main-area">
+    <div class="seats-layout">
+      <div class="seats-grid">
+        @for (seat of sortedSeats(); track seat.seatId) {
+          <div class="seat-card" [class.occupied]="seat.playerId">
+            <div class="seat-header">
+              <span class="seat-num"
+                >#{{ seat.order }}
+                @if (seat.isAdmin) {
+                  <span class="admin-icon" title="Host">👑</span>
+                }
+                @if (seat.playerId! | isBot: lobbyState()!.players!) {
+                  <span class="bot-icon" title="Bot">🤖</span>
+                }
+              </span>
 
-          @if (seat.playerId == null && amIAdmin()) {
-            <button class="bot-control add-bot" (click)="onAddBot(seat.seatId!)">
-              {{ 'lobby.addBot' | transloco }}
-            </button>
-          }
-          @if (
-            seat.playerId != null && amIAdmin() && (seat.playerId | isBot: lobbyState()!.players!)
-          ) {
-            <button class="bot-control remove-bot" (click)="onRemoveBot(seat.seatId!)">
-              {{ 'lobby.removeBot' | transloco }}
-            </button>
-          }
-        </div>
+              @if (seat.playerId == null && amIAdmin()) {
+                <button class="bot-control add-bot" (click)="onAddBot(seat.seatId!)">
+                  {{ 'lobby.addBot' | transloco }}
+                </button>
+              }
+              @if (
+                seat.playerId != null &&
+                amIAdmin() &&
+                (seat.playerId | isBot: lobbyState()!.players!)
+              ) {
+                <button class="bot-control remove-bot" (click)="onRemoveBot(seat.seatId!)">
+                  {{ 'lobby.removeBot' | transloco }}
+                </button>
+              }
+            </div>
 
-        <div class="seat-content">
-          @if (seat.playerId) {
-            <span class="player-name">{{ getPlayerName(seat.playerId) }}</span>
-          } @else {
-            <button class="join-seat-btn" (click)="onTakeSeat(seat.seatId!)">
-              {{ 'lobby.takeSeat' | transloco }}
-            </button>
-          }
-        </div>
-      </div>
-    }
-  </div>
-</div>
-
-@if (amIAdmin()) {
-  <div class="admin-settings-panel animate-in">
-    <div class="panel-header">
-      <span class="icon">⚙️</span>
-      <h3>{{ 'lobby.gameSettings' | transloco }}</h3>
-    </div>
-
-    <div class="settings-grid">
-      <div class="setting-item">
-        <label>{{ 'lobby.language' | transloco }}</label>
-        <div class="btn-group">
-          <button
-            [class.active]="lobbyState()?.settings?.language === gameLanguage.Polish"
-            (click)="updateSetting('language', gameLanguage.Polish)"
-          >
-            PL
-          </button>
-          <button
-            [class.active]="lobbyState()?.settings?.language === gameLanguage.English"
-            (click)="updateSetting('language', gameLanguage.English)"
-          >
-            EN
-          </button>
-        </div>
-      </div>
-
-      <div class="setting-item">
-        <label>{{ 'lobby.timeBank' | transloco }} (min)</label>
-        <select
-          [value]="lobbyState()?.settings?.timeBank"
-          (change)="updateSetting('timeBank', parseInt($any($event.target).value))"
-        >
-          <option value="3">3</option>
-          <option value="5">5</option>
-          <option value="10">10</option>
-          <option value="15">15</option>
-          <option value="20">20</option>
-          <option value="25">25</option>
-          <option value="30">30</option>
-          <option value="40">40</option>
-          <option value="50">50</option>
-          <option value="60">60</option>
-        </select>
-      </div>
-
-      <div class="setting-item">
-        <label>{{ 'lobby.totalTiles' | transloco }}</label>
-        <input
-          type="range"
-          min="50"
-          max="200"
-          step="10"
-          [value]="lobbyState()?.settings?.tilesCount"
-          (change)="updateSetting('tilesCount', parseInt($any($event.target).value))"
-        />
-        <span class="val">{{ lobbyState()?.settings?.tilesCount }}</span>
-      </div>
-
-      <div class="setting-item">
-        <label>{{ 'lobby.boardType' | transloco }}</label>
-        <div class="btn-group vertical">
-          <button
-            [class.active]="lobbyState()?.settings?.boardType === boardType.Classic"
-            (click)="updateSetting('boardType', boardType.Classic)"
-          >
-            {{ 'lobby.boardClassic' | transloco }}
-          </button>
-          <button
-            [class.active]="lobbyState()?.settings?.boardType === boardType.Arena"
-            (click)="updateSetting('boardType', boardType.Arena)"
-          >
-            {{ 'lobby.boardArena' | transloco }}
-          </button>
-          <button
-            [class.active]="lobbyState()?.settings?.boardType === boardType.Wildlands"
-            (click)="updateSetting('boardType', boardType.Wildlands)"
-          >
-            {{ 'lobby.boardWildlands' | transloco }}
-          </button>
-          <button
-            [class.active]="lobbyState()?.settings?.boardType === boardType.Widelands"
-            (click)="updateSetting('boardType', boardType.Widelands)"
-          >
-            {{ 'lobby.boardWidelands' | transloco }}
-          </button>
-        </div>
+            <div class="seat-content">
+              @if (seat.playerId) {
+                <span class="player-name">{{ getPlayerName(seat.playerId) }}</span>
+              } @else {
+                <button class="join-seat-btn" (click)="onTakeSeat(seat.seatId!)">
+                  {{ 'lobby.takeSeat' | transloco }}
+                </button>
+              }
+            </div>
+          </div>
+        }
       </div>
     </div>
 
-    <button class="start-game-btn" [disabled]="!canStartGame()" (click)="onStartGame()">
-      {{ 'lobby.startGame' | transloco }}
-
-      @if (amIAdmin() && seatedPlayersCount() < 2) {
-        <span class="btn-hint">({{ 'lobby.needMorePlayers' | transloco }})</span>
-      }
-    </button>
+    <div class="spectators-section">
+      <h3>{{ 'lobby.spectators' | transloco }}</h3>
+      <div class="spectators-list">
+        @for (p of getSpectators(); track p.playerId) {
+          <span class="spectator-tag">{{ p.playerName }}</span>
+        } @empty {
+          <span class="no-spectators">- brak widzów -</span>
+        }
+      </div>
+    </div>
   </div>
-}
 
-<div class="spectators-section">
-  <h3>{{ 'lobby.spectators' | transloco }}</h3>
-  <div class="spectators-list">
-    @for (p of getSpectators(); track p.playerId) {
-      <span class="spectator-tag">{{ p.playerName }}</span>
-    }
-  </div>
+  @if (amIAdmin()) {
+    <div class="side-panel">
+      <div class="admin-settings-panel animate-in">
+        <div class="panel-header">
+          <span class="icon">⚙️</span>
+          <h3>{{ 'lobby.gameSettings' | transloco }}</h3>
+        </div>
+
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label>{{ 'lobby.language' | transloco }}</label>
+            <div class="btn-group">
+              <button
+                [class.active]="lobbyState()?.settings?.language === gameLanguage.Polish"
+                (click)="updateSetting('language', gameLanguage.Polish)"
+              >
+                PL
+              </button>
+              <button
+                [class.active]="lobbyState()?.settings?.language === gameLanguage.English"
+                (click)="updateSetting('language', gameLanguage.English)"
+              >
+                EN
+              </button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <label>{{ 'lobby.timeBank' | transloco }} (min)</label>
+            <select
+              [value]="lobbyState()?.settings?.timeBank"
+              (change)="updateSetting('timeBank', parseInt($any($event.target).value))"
+            >
+              <option value="3">3</option>
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="25">25</option>
+              <option value="30">30</option>
+              <option value="40">40</option>
+              <option value="50">50</option>
+              <option value="60">60</option>
+            </select>
+          </div>
+
+          <div class="setting-item full-width">
+            <label>{{ 'lobby.totalTiles' | transloco }}</label>
+            <div class="range-wrapper">
+              <input
+                type="range"
+                min="50"
+                max="200"
+                step="10"
+                [value]="lobbyState()?.settings?.tilesCount"
+                (change)="updateSetting('tilesCount', parseInt($any($event.target).value))"
+              />
+              <span class="val">{{ lobbyState()?.settings?.tilesCount }}</span>
+            </div>
+          </div>
+
+          <div class="setting-item full-width">
+            <label>{{ 'lobby.boardType' | transloco }}</label>
+            <div class="btn-group vertical">
+              <button
+                [class.active]="lobbyState()?.settings?.boardType === boardType.Classic"
+                (click)="updateSetting('boardType', boardType.Classic)"
+              >
+                {{ 'lobby.boardClassic' | transloco }}
+              </button>
+              <button
+                [class.active]="lobbyState()?.settings?.boardType === boardType.Arena"
+                (click)="updateSetting('boardType', boardType.Arena)"
+              >
+                {{ 'lobby.boardArena' | transloco }}
+              </button>
+              <button
+                [class.active]="lobbyState()?.settings?.boardType === boardType.Wildlands"
+                (click)="updateSetting('boardType', boardType.Wildlands)"
+              >
+                {{ 'lobby.boardWildlands' | transloco }}
+              </button>
+              <button
+                [class.active]="lobbyState()?.settings?.boardType === boardType.Widelands"
+                (click)="updateSetting('boardType', boardType.Widelands)"
+              >
+                {{ 'lobby.boardWidelands' | transloco }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button class="start-game-btn" [disabled]="!canStartGame()" (click)="onStartGame()">
+          {{ 'lobby.startGame' | transloco }}
+          @if (amIAdmin() && seatedPlayersCount() < 2) {
+            <span class="btn-hint">({{ 'lobby.needMorePlayers' | transloco }})</span>
+          }
+        </button>
+      </div>
+    </div>
+  }
 </div>

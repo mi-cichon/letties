@@ -1,8 +1,12 @@
+:host {
+  height: 100%;
+}
+
 .lobby-container {
   display: grid;
   // min-content pozwala kolumnie dopasować się do szerokości app-chat
+  height: 100%;
   grid-template-columns: 1fr min-content;
-  height: 100vh;
   transition: grid-template-columns 0.3s ease;
   background: #121212;
   color: #eee;
@@ -15,6 +19,11 @@
   padding: 0 2rem;
   overflow-y: auto;
   min-width: 0; // Ważne dla stabilności grida
+  padding-bottom: 2rem;
+
+  @media (max-width: 500px) {
+    padding: 0 0.5rem 2rem 0.5rem;
+  }
 }
 
 .lobby-sidebar {

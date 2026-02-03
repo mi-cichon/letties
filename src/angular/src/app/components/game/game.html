@@ -101,7 +101,16 @@
                     <div *cdkDragPlaceholder></div>
                   </div>
                   @if (def?.valueText === '?' && activeBlankPickerCell() === cell.id!) {
-                    <div class="blank-picker">
+                    @let boardPosition =
+                      $index | boardPosition: state.layout?.width! : state.layout?.height!;
+
+                    <div
+                      class="blank-picker"
+                      [class.left]="boardPosition.horizontal === 'left'"
+                      [class.right]="boardPosition.horizontal === 'right'"
+                      [class.top]="boardPosition.vertical === 'top'"
+                      [class.bottom]="boardPosition.vertical === 'bottom'"
+                    >
                       <div class="blank-grid">
                         @for (opt of blankOptions(); track opt.valueId) {
                           <button

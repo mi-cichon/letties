@@ -4,6 +4,7 @@
   align-items: center;
   padding: 1rem 2rem;
   background: rgba(30, 30, 30, 0.8);
+  flex-shrink: 0;
 
   .title {
     margin: 0;
@@ -52,6 +53,14 @@
       user-select: none;
     }
   }
+}
+
+.main-wrap {
+  flex: 1; // Zajmij całą POZOSTAŁĄ przestrzeń pod headerem
+  overflow: hidden; // Jeśli dziecko jest za duże, utnij je (dziecko samo sobie zrobi scrolla)
+  position: relative;
+  display: flex; // Przekaż layout niżej
+  flex-direction: column;
 }
 
 .logout-btn {
