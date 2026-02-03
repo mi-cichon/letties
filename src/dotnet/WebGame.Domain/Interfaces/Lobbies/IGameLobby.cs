@@ -14,6 +14,7 @@ public interface IGameLobby
     GameLobbyState State { get; }
     #region Lobby State
     Task<LobbyStateDetails> AssignPlayer(Guid playerId, string playerConnectionId, string playerName);
+    LobbyStateDetails GetLobbyState();
     Task LeaveLobby(Guid playerId);
     Task PlayerDisconnected(string playerConnectionId);
     Task SendMessage(string playerName, string message);

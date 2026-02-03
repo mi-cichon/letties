@@ -1,14 +1,11 @@
-import { inject, Injectable, signal, WritableSignal } from '@angular/core';
-import { Router } from '@angular/router';
-import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
+import { inject, Injectable, NgZone, OnDestroy, signal, WritableSignal } from '@angular/core';
+import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 import { getGameHubUrl } from '../core/utils/api-url-builder';
 import {
   BotDifficulty,
   GameDetails,
   GameLobbyItem,
-  GameLobbyState,
   JoinResponse,
-  LobbySeatDetails,
   LobbySettingsModel,
   LobbyStateDetails,
   MoveRequestModel,
@@ -20,8 +17,9 @@ import { Subject } from 'rxjs';
 @Injectable({
   providedIn: 'root',
 })
-export class GameHubService {
+export class GameHubService implements OnDestroy {
   private hubConnection!: HubConnection;
+  private ngZone = inject(NgZone);
 
   private _connectionEstablished = signal(false);
   public connectionEstablished = this._connectionEstablished.asReadonly();
@@ -37,17 +35,18 @@ export class GameHubService {
       .withUrl(getGameHubUrl(), {
         accessTokenFactory: () => {
           const token = getJwtToken();
-          return token;
+          return token || '';
         },
       })
-      .withAutomaticReconnect()
+      .withAutomaticReconnect([0, 2000, 5000, 10000, 20000])
       .build();
 
     try {
+      this.registerHandlers();
       await this.hubConnection.start();
       console.log('Game Hub connected');
       this._connectionEstablished.set(true);
-      this.registerHandlers();
+      this.handlePageVisibility();
       return true;
     } catch (err) {
       console.error('Error connecting to Game Hub:', err);
@@ -58,24 +57,58 @@ export class GameHubService {
 
   private registerHandlers() {
     this.hubConnection.on('ReceiveMessage', (playerName: string, message: string) => {
-      const newMessage: ChatMessage = {
-        author: playerName,
-        text: message,
-        timestamp: new Date(),
-      };
-
-      this.chatMessageSubject.next(newMessage);
+      this.ngZone.run(() => {
+        const newMessage: ChatMessage = {
+          author: playerName,
+          text: message,
+          timestamp: new Date(),
+        };
+        this.chatMessageSubject.next(newMessage);
+      });
     });
 
     this.hubConnection.on('LobbyUpdated', (lobbyState: LobbyStateDetails) => {
-      this.lobbyState.set(lobbyState);
-      console.info('Lobby updated', lobbyState);
+      this.ngZone.run(() => {
+        this.lobbyState.set(lobbyState);
+        console.info('Lobby updated', lobbyState);
+      });
     });
 
     this.hubConnection.on('GameUpdated', (gameState: GameDetails) => {
-      this.gameState.set(gameState);
-      console.info('Game updated', gameState);
+      this.ngZone.run(() => {
+        this.gameState.set(gameState);
+        console.info('Game updated', gameState);
+      });
     });
+
+    this.hubConnection.onreconnected(() => {
+      this.ngZone.run(() => {
+        console.log('SignalR reconnected');
+        if (this.gameState()) {
+          this.getGameDetails();
+        }
+      });
+    });
+  }
+
+  private handlePageVisibility() {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        if (this.hubConnection.state === HubConnectionState.Disconnected) {
+          this.hubConnection
+            .start()
+            .then(() => this.refreshFullState())
+            .catch((err) => console.error('Reconnection failed', err));
+        } else {
+          this.refreshFullState();
+        }
+      }
+    });
+  }
+
+  private refreshFullState() {
+    this.getLobbyDetails();
+    this.getGameDetails();
   }
 
   public getLobbies(): Promise<GameLobbyItem[]> {
@@ -92,7 +125,9 @@ export class GameHubService {
     return this.hubConnection
       .invoke('Join', lobbyId)
       .then((response: JoinResponse) => {
-        this.lobbyState.set(response.lobbyState!);
+        this.ngZone.run(() => {
+          this.lobbyState.set(response.lobbyState!);
+        });
         return Promise.resolve(response);
       })
       .catch((err) => {
@@ -101,10 +136,14 @@ export class GameHubService {
       });
   }
 
-  public leaveLobby(): Promise<JoinResponse> {
+  public leaveLobby(): Promise<void> {
     return this.hubConnection
       .invoke('LeaveLobby')
-      .then()
+      .then(() => {
+        this.ngZone.run(() => {
+          this.lobbyState.set(null);
+        });
+      })
       .catch((err) => {
         console.error('Error invoking LeaveLobby: ', err);
         return Promise.reject();
@@ -142,7 +181,7 @@ export class GameHubService {
     try {
       return await this.hubConnection.invoke('UpdateLobbySettings', settingsModel);
     } catch (err) {
-      console.error('Error invoking LeaveSeat: ', err);
+      console.error('Error invoking UpdateLobbySettings: ', err);
       return await Promise.reject();
     }
   }
@@ -174,11 +213,24 @@ export class GameHubService {
     }
   }
 
+  public async getLobbyDetails(): Promise<void> {
+    try {
+      const details = await this.hubConnection.invoke('GetLobbyDetails');
+      this.ngZone.run(() => {
+        this.lobbyState.set(details);
+      });
+    } catch (err) {
+      console.error('Error invoking GetLobbyDetails: ', err);
+      return await Promise.reject();
+    }
+  }
+
   public async getGameDetails(): Promise<void> {
     try {
       const details = await this.hubConnection.invoke('GetGameDetails');
-      console.info('Game details updated:', details);
-      this.gameState.set(details);
+      this.ngZone.run(() => {
+        this.gameState.set(details);
+      });
     } catch (err) {
       console.error('Error invoking GetGameDetails: ', err);
       return await Promise.reject();
@@ -209,6 +261,12 @@ export class GameHubService {
     } catch (err) {
       console.error('Error invoking SwapTiles: ', err);
       return await Promise.reject();
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.hubConnection) {
+      this.hubConnection.stop();
     }
   }
 }

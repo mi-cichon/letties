@@ -29,6 +29,11 @@ public class GameHub(ILobbyManager lobbyManager) : Hub
         var lobbyState = await lobbyManager.AssignPlayerToLobby(playerId, lobbyId, Context.ConnectionId, playerName);
         return new JoinResponse(playerId, lobbyState);
     }
+
+    public LobbyStateDetails GetLobbyDetails()
+    {
+        return lobbyManager.GetLobbyState(Context.GetPlayerId(), Context.ConnectionId);
+    }
     
     public async Task LeaveLobby()
     {

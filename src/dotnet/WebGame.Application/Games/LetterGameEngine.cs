@@ -275,7 +275,7 @@ public class LetterGameEngine : ILetterGameEngine
         }
 
         if (_playerHands.Where(x => !_gamePlayers.First(p => p.PlayerId == x.Key).IsBot)
-            .All(h => !h.Value.IsOnline))
+            .All(h => !h.Value.IsOnline && h.Value.TimeDepleted))
         {
             FinishGame();
         }

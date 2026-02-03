@@ -11,6 +11,7 @@ public interface ILobbyManager
 {
     IReadOnlyList<GameLobbyItem> GetLobbies();
     Task<LobbyStateDetails> AssignPlayerToLobby(Guid playerId, Guid lobbyId, string playerConnectionId, string playerName);
+    LobbyStateDetails GetLobbyState(Guid playerId, string playerConnectionId);
     Task LeaveLobby(Guid playerId, string playerConnectionId);
     Task PlayerDisconnected(string playerConnectionId);
     Task SendMessage(string playerConnectionId, string playerName, string message);

@@ -91,6 +91,19 @@ public class GameLobby : IGameLobby
         return currentState;
     }
 
+    public LobbyStateDetails GetLobbyState()
+    {
+        var playerDetails = _players.Values.ToArray()
+            .Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName, x.IsBot, x.BotDifficulty))
+            .ToArray();
+        
+        var seatDetails = _seats
+            .Select(x => new LobbySeatDetails(x.Key, x.Value.PlayerId, x.Value.IsAdmin, x.Value.Order))
+            .ToArray();
+        
+        return new LobbyStateDetails(LobbyId, playerDetails, seatDetails, _lobbySettings, State, GameFinishedDetails);
+    }
+
     public async Task LeaveLobby(Guid playerId)
     {
         await _gameContextService.RemoveFromGroup(_players[playerId].PlayerConnectionId, LobbyGroupName);
@@ -374,17 +387,7 @@ public class GameLobby : IGameLobby
 
     private async Task UpdateGroupWithLobbyState()
     {
-        var playerDetails = _players.Values.ToArray()
-            .Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName, x.IsBot, x.BotDifficulty))
-            .ToArray();
-        
-        var seatDetails = _seats
-            .Select(x => new LobbySeatDetails(x.Key, x.Value.PlayerId, x.Value.IsAdmin, x.Value.Order))
-            .ToArray();
-        
-        var currentState = new LobbyStateDetails(LobbyId, playerDetails, seatDetails, _lobbySettings, State, GameFinishedDetails);
-        
-        await _gameContextService.SendToGroup(LobbyGroupName, GameMethods.LobbyUpdated, currentState);
+        await _gameContextService.SendToGroup(LobbyGroupName, GameMethods.LobbyUpdated, GetLobbyState());
     }
 
     private async Task UpdateGroupWithGameState()

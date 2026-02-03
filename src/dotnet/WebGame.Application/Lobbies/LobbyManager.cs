@@ -33,6 +33,21 @@ public class LobbyManager(IEnumerable<IGameLobby> gameLobbies) : ILobbyManager
         return result;
     }
 
+    public LobbyStateDetails GetLobbyState(Guid playerId, string playerConnectionId)
+    {
+        if (!_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
+        {
+            gameLobby = _playerAssignedLobbies.Values.FirstOrDefault(lobby => lobby.IsPlayerInLobby(playerId));
+        }
+
+        if (gameLobby == null)
+        {
+            throw new InvalidOperationException("Player is not in a lobby.");
+        }
+
+        return gameLobby.GetLobbyState();
+    }
+
     public async Task PlayerDisconnected(string playerConnectionId)
     {
         if (_playerAssignedLobbies.TryRemove(playerConnectionId, out var gameLobby))
