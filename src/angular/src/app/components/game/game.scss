@@ -32,49 +32,135 @@
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   padding: 16px;
   display: flex;
-  overflow-y: auto;
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
   z-index: 0;
 
-  // Na mobilce sidebar jest tylko paskiem nagłówka
+  // --- ZMIANA NA MOBILE: POZIOMY PASEK ---
   @media (max-width: 900px) {
-    flex-direction: column;
-    align-items: flex-start;
-    height: auto;
-    padding: 8px 12px;
+    // 1. Układ poziomy całego paska
+    flex-direction: row;
+    align-items: center; // Wyrównaj wszystko do środka w pionie
+    gap: 12px;
+
+    // 2. Obsługa wymiarów i scrolla
+    width: 100%;
+    height: auto; // Wysokość tylko tyle ile treść
+    min-height: 50px; // Zabezpieczenie
+    padding: 8px 12px; // Mniejszy padding
+
+    // 3. Scrollowanie poziome
+    overflow-x: auto; // Włącz scroll w bok
+    overflow-y: hidden; // Wyłącz scroll w pionie
+    white-space: nowrap; // Nie zawijaj dzieci do nowej linii
+
+    // Fix dla płynnego scrolla na iOS
+    -webkit-overflow-scrolling: touch;
+
+    // Ukrycie paska przewijania (estetyka "chipsów")
+    scrollbar-width: none; // Firefox
+    &::-webkit-scrollbar {
+      display: none; // Chrome/Safari
+    }
+
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
+    // --- SEKCJJA 1: NAGŁÓWEK (Tytuł + Worek) ---
     .sidebar-header {
-      width: 100%;
-      justify-content: center;
       display: flex;
+      flex-direction: row; // Obok siebie
       align-items: center;
-      gap: 2vw;
+      gap: 12px;
+      margin: 0; // Reset marginesów
+      width: auto; // Nie rozciągaj
+      flex-shrink: 0; // Nie zgniataj nagłówka
+
+      // Separator między nagłówkiem a graczami
+      padding-right: 12px;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+
       h2 {
         margin: 0;
-        font-size: 1rem;
+        font-size: 0.9rem; // Mniejszy font
+        white-space: nowrap;
+      }
+
+      .bag-card {
+        padding: 4px 8px; // Kompaktowy worek
+        gap: 6px;
+        .icon {
+          font-size: 1rem;
+        }
+        .bag-details {
+          // Na mobile ukrywamy napis "Worek", zostawiamy tylko liczbę
+          .label {
+            display: none;
+          }
+          .count {
+            font-size: 0.9rem;
+          }
+        }
       }
     }
 
-    // Ukrywamy listę graczy na mobilce lub robimy scroll poziomy
+    // --- SEKJA 2: LISTA GRACZY ---
     .scores-container {
-      flex: 1;
       display: flex;
-      width: 100%;
-      justify-content: center;
       flex-direction: row;
-      overflow-x: auto;
       gap: 8px;
-      padding-bottom: 0;
+      overflow: visible; // Scrolluje rodzic (.game-sidebar), a nie ten kontener
+      padding: 0;
+      flex: 1; // Zajmij resztę miejsca
     }
 
     .player-card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
       margin-bottom: 0;
-      min-width: 140px;
-      padding: 6px;
+      padding: 4px 10px; // Bardziej płaskie karty
+      min-width: auto; // Reset szerokości
+      flex-shrink: 0; // Nie zgniataj kart graczy
+
+      // Przebudowa wnętrza karty na poziomą
+      .player-info {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .top-details,
+      .details {
+        display: flex;
+        gap: 8px;
+        margin: 0;
+      }
+
+      // Ukrywamy mniej ważne rzeczy na pasku, żeby się zmieściło
+      .hand-indicator {
+        font-size: 0.75rem;
+      }
+      .name {
+        font-size: 0.9rem;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .score-val {
+        font-size: 0.9rem;
+      }
+      .remaining-time {
+        display: none;
+      } // Czas zajmuje dużo miejsca, można ukryć lub zostawić
+
+      &.active {
+        border-left: none; // Reset
+        border-bottom: 2px solid #f1c40f; // Aktywny gracz podkreślony od dołu
+      }
     }
   }
 }
