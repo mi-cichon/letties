@@ -49,6 +49,15 @@
     "boardWidelands": "Piastkowia",
     "addBot": "Dodaj bota",
     "removeBot": "Usuń bota",
+    "bot": {
+      "selectLevel": "Wybierz poziom",
+      "easy": "Nowicjusz",
+      "easyDesc": "Gra losowo, często psuje",
+      "medium": "Amator",
+      "mediumDesc": "Gra sensownie, czasem błądzi",
+      "hard": "Mistrz",
+      "hardDesc": "Bezlitosna strategia"
+    },
     "bag": "W worku",
     "cancel": "Anuluj",
     "swap": "Wymień",

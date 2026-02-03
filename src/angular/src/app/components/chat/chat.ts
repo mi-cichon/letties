@@ -46,7 +46,16 @@ export class Chat {
     });
   }
 
-  sendMessage(input: HTMLInputElement) {
+  onKeyDown(event: KeyboardEvent, input: HTMLTextAreaElement) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessage(input);
+    }
+  }
+
+  sendMessage(input: HTMLTextAreaElement) {
+    const text = input.value.trim();
+    if (!text) return;
     const val = input.value.trim();
     if (val) {
       this.onSendMessage.emit(val);

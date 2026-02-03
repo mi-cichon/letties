@@ -28,8 +28,9 @@
               <div class="top-details">
                 <span class="name">{{ score.playerName }} </span>
                 <span class="hand-indicator">
-                  @if (score.playerId! | isBot: lobbyState()?.players!) {
-                    <span class="bot-icon" title="Bot">🤖</span>
+                  @let botInfo = score.playerId! | getBotInfo: lobbyState()!.players!;
+                  @if (botInfo.isBot) {
+                    <span class="bot-icon" title="Bot">🤖{{ botInfo.difficultyText }}</span>
                   }
                   🤚 {{ score.tilesRemainingInHand }}</span
                 >

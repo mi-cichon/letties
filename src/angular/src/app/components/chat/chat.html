@@ -21,13 +21,13 @@
   </div>
 
   <div class="input-area">
-    <input
+    <textarea
       #msgInput
-      type="text"
+      rows="1"
       [placeholder]="'chat.placeholder' | transloco"
-      (keyup.enter)="sendMessage(msgInput)"
-      autocomplete="off"
-    />
+      (keydown)="onKeyDown($event, msgInput)"
+    ></textarea>
+
     <button class="send-btn" (click)="sendMessage(msgInput)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
         <path

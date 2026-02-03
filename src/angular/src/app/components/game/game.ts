@@ -33,7 +33,7 @@ import {
 import { LobbyNamePipe } from '../overview/pipes/lobby-name.pipe';
 import { GetPlayerTimePipe } from './pipes/get-player-time-pipe';
 import { GetPlayerOfflinePipe } from './pipes/get-player-offline-pipe';
-import { IsBotPipe } from '../lobby/pipes/is-bot-pipe';
+import { GetBotInfoPipe } from '../lobby/pipes/get-bot-info-pipe';
 import { BoardPositionPipe } from './pipes/board-position-pipe';
 
 @Component({
@@ -49,7 +49,7 @@ import { BoardPositionPipe } from './pipes/board-position-pipe';
     LobbyNamePipe,
     GetPlayerTimePipe,
     GetPlayerOfflinePipe,
-    IsBotPipe,
+    GetBotInfoPipe,
     BoardPositionPipe,
   ],
   templateUrl: './game.html',

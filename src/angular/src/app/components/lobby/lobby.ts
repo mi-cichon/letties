@@ -3,19 +3,24 @@ import { GameHubService } from '../../services/game-hub-service';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { getPlayerId } from '../../core/utils/token-utils';
 import { BoardType, BotDifficulty, GameLanguage } from '../../api';
-import { IsBotPipe } from './pipes/is-bot-pipe';
+import { GetBotInfoPipe } from './pipes/get-bot-info-pipe';
 
 @Component({
   selector: 'app-lobby',
   templateUrl: './lobby.html',
   styleUrl: './lobby.scss',
-  imports: [TranslocoPipe, IsBotPipe],
+  imports: [TranslocoPipe, GetBotInfoPipe],
 })
 export class Lobby {
   private gameHubService = inject(GameHubService);
 
   public lobbyId = input.required<string>();
   public lobbyState = this.gameHubService.lobbyState.asReadonly();
+
+  public addingBotToSeatId = signal<string | null>(null);
+  public selectedBotDifficulty = signal<BotDifficulty>(BotDifficulty.Easy);
+
+  public BotDifficulty = BotDifficulty;
 
   public sortedSeats = computed(() => {
     const state = this.lobbyState();
@@ -75,8 +80,27 @@ export class Lobby {
     await this.gameHubService.startGame();
   }
 
-  async onAddBot(seatId: string) {
-    await this.gameHubService.addBot(seatId, BotDifficulty.Easy);
+  onAddBotClick(seatId: string) {
+    this.selectedBotDifficulty.set(BotDifficulty.Easy);
+    this.addingBotToSeatId.set(seatId);
+  }
+
+  selectBotDifficulty(diff: BotDifficulty) {
+    this.selectedBotDifficulty.set(diff);
+  }
+
+  async confirmAddBot() {
+    const seatId = this.addingBotToSeatId();
+    const diff = this.selectedBotDifficulty();
+
+    if (seatId) {
+      await this.gameHubService.addBot(seatId, diff);
+      this.closeBotModal();
+    }
+  }
+
+  closeBotModal() {
+    this.addingBotToSeatId.set(null);
   }
 
   async onRemoveBot(seatId: string) {

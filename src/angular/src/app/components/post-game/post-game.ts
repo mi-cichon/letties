@@ -9,12 +9,12 @@ import {
 import { CommonModule } from '@angular/common';
 import { GameHubService } from '../../services/game-hub-service';
 import { TranslocoModule } from '@jsverse/transloco';
-import { IsBotPipe } from '../lobby/pipes/is-bot-pipe';
+import { GetBotInfoPipe } from '../lobby/pipes/get-bot-info-pipe';
 
 @Component({
   selector: 'app-post-game',
   standalone: true,
-  imports: [CommonModule, TranslocoModule, IsBotPipe],
+  imports: [CommonModule, TranslocoModule, GetBotInfoPipe],
   templateUrl: './post-game.html',
   styleUrl: './post-game.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -265,6 +265,7 @@ public class LetterGameEngine : ILetterGameEngine
         {
             currentTurnPlayerHand.RemainingTime = TimeSpan.Zero;
             currentTurnPlayerHand.TimeDepleted = true;
+            _consecutiveScorelessTurns = 0;
             RotateTurn();
             NotifyStateChanged();
         }
@@ -551,6 +552,7 @@ public class LetterGameEngine : ILetterGameEngine
         {
             _playerHands[playerId].RemainingTime = TimeSpan.Zero;
             _playerHands[playerId].TimeDepleted = true;
+            _consecutiveScorelessTurns = 0;
             return;
         }
 
@@ -633,7 +635,9 @@ public class LetterGameEngine : ILetterGameEngine
         
         _consecutiveScorelessTurns++;
 
-        var limit = 2 * _gamePlayers.Count;
+        var playersWithTime = _playerHands.Count(x => !x.Value.TimeDepleted);
+
+        var limit = 2 * playersWithTime;
         if (_consecutiveScorelessTurns >= limit)
         {
             FinishGame();

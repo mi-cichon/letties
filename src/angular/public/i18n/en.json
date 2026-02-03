@@ -49,6 +49,15 @@
     "boardWidelands": "Widelands",
     "addBot": "Add bot",
     "removeBot": "Remove bot",
+    "bot": {
+      "selectLevel": "Select Difficulty",
+      "easy": "Novice",
+      "easyDesc": "Plays randomly, makes mistakes",
+      "medium": "Casual",
+      "mediumDesc": "Plays logically, sometimes errs",
+      "hard": "Master",
+      "hardDesc": "Ruthless strategy"
+    },
     "bag": "In bag",
     "cancel": "Cancel",
     "swap": "Swap",

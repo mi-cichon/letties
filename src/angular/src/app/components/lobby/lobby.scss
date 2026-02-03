@@ -321,3 +321,154 @@
     }
   }
 }
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.bot-modal {
+  background: #1e1e1e;
+  border: 1px solid #e2c08d; // Złota ramka jak w settings
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  &.animate-in {
+    animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    color: #e2c08d;
+    text-transform: uppercase;
+    text-align: center;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+  }
+}
+
+// --- KAFELKI ---
+.difficulty-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+
+  @media (max-width: 500px) {
+    grid-template-columns: 1fr; // Pionowo na mobile
+  }
+}
+
+.diff-card {
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 1rem 0.5rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #2a2a2a;
+    transform: translateY(-2px);
+  }
+
+  &.active {
+    background: rgba(226, 192, 141, 0.15);
+    border-color: #e2c08d;
+    box-shadow: 0 0 10px rgba(226, 192, 141, 0.1);
+
+    .icon {
+      transform: scale(1.1);
+    }
+    .lvl {
+      color: #e2c08d;
+    }
+  }
+
+  .icon {
+    font-size: 1.8rem;
+    transition: transform 0.2s;
+  }
+
+  .info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lvl {
+    font-weight: bold;
+    color: #ddd;
+    font-size: 0.9rem;
+  }
+  .desc {
+    font-size: 0.7rem;
+    color: #777;
+    margin-top: 2px;
+  }
+}
+
+// --- BUTTONY ---
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+
+  button {
+    flex: 1;
+    padding: 0.8rem;
+    border-radius: 6px;
+    border: none;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+
+  .cancel {
+    background: transparent;
+    border: 1px solid #444;
+    color: #888;
+    &:hover {
+      border-color: #666;
+      color: #bbb;
+    }
+  }
+
+  .confirm {
+    background: #e2c08d;
+    color: #1a1a1a;
+    &:hover {
+      filter: brightness(1.1);
+    }
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

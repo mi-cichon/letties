@@ -49,7 +49,9 @@ public static class ServiceCollectionExtensions
                 .AddSingleton<IGameEngineFactory, GameEngineFactory>()
                 .AddSingleton<IBoardGenerator, BoardGenerator>()
                 .AddSingleton<IMoveSimulator, MoveSimulator>()
-                .AddSingleton<IBotStrategy, EasyBotStrategy>();
+                .AddSingleton<IBotStrategy, EasyBotStrategy>()
+                .AddSingleton<IBotStrategy, MediumBotStrategy>()
+                .AddSingleton<IBotStrategy, HardBotStrategy>();
 
             services
                 .AddHostedService<GameRulesTickService>();

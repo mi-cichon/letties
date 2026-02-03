@@ -3,6 +3,7 @@
     <div class="seats-layout">
       <div class="seats-grid">
         @for (seat of sortedSeats(); track seat.seatId) {
+          @let botInfo = seat.playerId! | getBotInfo: lobbyState()!.players!;
           <div class="seat-card" [class.occupied]="seat.playerId">
             <div class="seat-header">
               <span class="seat-num"
@@ -10,21 +11,18 @@
                 @if (seat.isAdmin) {
                   <span class="admin-icon" title="Host">👑</span>
                 }
-                @if (seat.playerId! | isBot: lobbyState()!.players!) {
-                  <span class="bot-icon" title="Bot">🤖</span>
+
+                @if (botInfo.isBot) {
+                  <span class="bot-icon" title="Bot">🤖 {{ botInfo.difficultyText }}</span>
                 }
               </span>
 
               @if (seat.playerId == null && amIAdmin()) {
-                <button class="bot-control add-bot" (click)="onAddBot(seat.seatId!)">
+                <button class="bot-control add-bot" (click)="onAddBotClick(seat.seatId!)">
                   {{ 'lobby.addBot' | transloco }}
                 </button>
               }
-              @if (
-                seat.playerId != null &&
-                amIAdmin() &&
-                (seat.playerId | isBot: lobbyState()!.players!)
-              ) {
+              @if (seat.playerId != null && amIAdmin() && botInfo.isBot) {
                 <button class="bot-control remove-bot" (click)="onRemoveBot(seat.seatId!)">
                   {{ 'lobby.removeBot' | transloco }}
                 </button>
@@ -159,3 +157,59 @@
     </div>
   }
 </div>
+@if (addingBotToSeatId()) {
+  <div class="modal-backdrop" (click)="closeBotModal()">
+    <div class="bot-modal animate-in" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ 'lobby.bot.selectLevel' | transloco }}</h3>
+      </div>
+
+      <div class="difficulty-cards">
+        <div
+          class="diff-card"
+          [class.active]="selectedBotDifficulty() === BotDifficulty.Easy"
+          (click)="selectBotDifficulty(BotDifficulty.Easy)"
+        >
+          <div class="icon">🐣</div>
+          <div class="info">
+            <span class="lvl">{{ 'lobby.bot.easy' | transloco }}</span>
+            <span class="desc">{{ 'lobby.bot.easyDesc' | transloco }}</span>
+          </div>
+        </div>
+
+        <div
+          class="diff-card"
+          [class.active]="selectedBotDifficulty() === BotDifficulty.Medium"
+          (click)="selectBotDifficulty(BotDifficulty.Medium)"
+        >
+          <div class="icon">👤</div>
+          <div class="info">
+            <span class="lvl">{{ 'lobby.bot.medium' | transloco }}</span>
+            <span class="desc">{{ 'lobby.bot.mediumDesc' | transloco }}</span>
+          </div>
+        </div>
+
+        <div
+          class="diff-card"
+          [class.active]="selectedBotDifficulty() === BotDifficulty.Hard"
+          (click)="selectBotDifficulty(BotDifficulty.Hard)"
+        >
+          <div class="icon">🤖</div>
+          <div class="info">
+            <span class="lvl">{{ 'lobby.bot.hard' | transloco }}</span>
+            <span class="desc">{{ 'lobby.bot.hardDesc' | transloco }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="cancel" (click)="closeBotModal()">
+          {{ 'lobby.cancel' | transloco }}
+        </button>
+        <button class="confirm" (click)="confirmAddBot()">
+          {{ 'lobby.addBot' | transloco }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
