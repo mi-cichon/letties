@@ -74,8 +74,16 @@ public class GameLobby : IGameLobby
     public async Task<Result<JoinDetails>> AssignPlayer(Guid playerId, string playerConnectionId, string playerName)
     {
         _logger.LogInformation("Lobby {LobbyId}: Assigning player {PlayerName} ({PlayerId})", LobbyId, playerName, playerId);
-        var lobbyPlayer = new LobbyPlayer(playerId, playerConnectionId, playerName, false, null);
-        _players.TryAdd(playerId, lobbyPlayer);
+        
+        if (_players.TryGetValue(playerId, out var existingPlayer))
+        {
+            existingPlayer.PlayerConnectionId = playerConnectionId;
+        }
+        else
+        {
+            var lobbyPlayer = new LobbyPlayer(playerId, playerConnectionId, playerName, false, null);
+            _players.TryAdd(playerId, lobbyPlayer);
+        }
         
         await UpdateGroupWithLobbyState();
         await _gameContextService.AddToGroup(playerConnectionId, LobbyGroupName);
@@ -171,9 +179,20 @@ public class GameLobby : IGameLobby
 
     public async Task<Result> PlayerDisconnected(string connectionId)
     {
-        var playerId = _players.SingleOrDefault(x => x.Value.PlayerConnectionId == connectionId).Key;
+        var playerEntry = _players.SingleOrDefault(x => x.Value.PlayerConnectionId == connectionId);
+        if (playerEntry.Value != null)
+        {
+            var playerId = playerEntry.Key;
+            _logger.LogInformation("Lobby {LobbyId}: Player {PlayerId} disconnected (connection lost)", LobbyId, playerId);
+            
+            if (State == GameLobbyState.Game && GameEngine != null)
+            {
+                GameEngine.SetPlayerOnline(playerId, false);
+                await UpdateGroupWithLobbyState();
+            }
+        }
         
-        return await LeaveLobby(playerId);
+        return Result.Success();
     }
     
     public async Task<Result> LeaveSeat(Guid playerId)
@@ -413,15 +432,26 @@ public class GameLobby : IGameLobby
 
     private async Task UpdateGroupWithLobbyState()
     {
-        await _gameContextService.SendToGroup(LobbyGroupName, GameMethods.LobbyUpdated, GetLobbyState());
+        var stateResult = GetLobbyState();
+        if (stateResult.IsSuccess)
+        {
+            await _gameContextService.SendToGroup(LobbyGroupName, GameMethods.LobbyUpdated, stateResult.Value);
+        }
     }
 
     private async Task UpdateGroupWithGameState()
     {
         var updateTasks = _players
             .Where(x => !x.Value.IsBot)
-            .Select(x => _gameContextService.SendToPlayer(x.Value.PlayerConnectionId,
-                GameMethods.GameUpdated, GameEngine!.GetGameDetails(x.Key)));
+            .Select(async x =>
+            {
+                var detailsResult = GameEngine!.GetGameDetails(x.Key);
+                if (detailsResult.IsSuccess)
+                {
+                    await _gameContextService.SendToPlayer(x.Value.PlayerConnectionId,
+                        GameMethods.GameUpdated, detailsResult.Value);
+                }
+            });
         
         await Task.WhenAll(updateTasks);
     }

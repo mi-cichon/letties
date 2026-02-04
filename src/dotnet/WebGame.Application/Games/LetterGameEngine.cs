@@ -28,6 +28,7 @@ public class LetterGameEngine : ILetterGameEngine
     private readonly Dictionary<Guid, PlayerHand> _playerHands = new();
     private readonly Dictionary<Guid, int> _playerScores = new();
     private readonly Stack<TileInstanceDetails> _tileBag = new();
+    private readonly List<MoveHistoricDetails> _moveHistory = new();
 
     private readonly IReadOnlyList<LetterTileItem> _tileDefinitions;
     private readonly Dictionary<Guid, LetterTileItem> _tileDefById;
@@ -391,7 +392,19 @@ public class LetterGameEngine : ILetterGameEngine
         {
             HandleScorelessTurn();
         }
+        
+        var playerName = _gamePlayers.First(p => p.PlayerId == playerId).PlayerName;
 
+        var historicMove = new MoveHistoricDetails(
+            playerId, 
+            playerName, 
+            wordScanResult.PointsEarned,
+            _playerScores[playerId], 
+            wordScanResult.FormedWords
+                .Select(w => w.Text).ToList());
+        
+        _moveHistory.Add(historicMove);
+        
         if (_tileBag.Count == 0 && _playerHands[playerId].Tiles.Count == 0)
         {
             _logger.LogInformation("Game over trigger: Tile bag empty and player {PlayerId} hand empty.", playerId);
@@ -656,7 +669,7 @@ public class LetterGameEngine : ILetterGameEngine
         
             _logger.LogInformation("Game finished. Duration: {Duration}. Scores: {@Scores}", gameElapsedTime, playersDetails);
 
-            var gameFinishedDetails = new GameFinishedDetails(playersDetails, gameElapsedTime, finishedAt);
+            var gameFinishedDetails = new GameFinishedDetails(playersDetails, _moveHistory, gameElapsedTime, finishedAt);
             OnGameFinished.Invoke(gameFinishedDetails);
         }
     }

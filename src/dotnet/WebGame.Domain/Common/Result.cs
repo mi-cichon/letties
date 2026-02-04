@@ -35,9 +35,7 @@ public class Result<T> : Result
 {
     private readonly T? _value;
 
-    public T Value => IsSuccess 
-        ? _value! 
-        : throw new InvalidOperationException("The value of a failure result can not be accessed.");
+    public T Value => _value!;
 
     [JsonConstructor]
     protected Result(T? value, bool isSuccess, Error error) : base(isSuccess, error)
