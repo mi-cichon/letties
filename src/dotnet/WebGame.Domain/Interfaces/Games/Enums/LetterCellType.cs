@@ -7,6 +7,5 @@ public enum LetterCellType
     TripleLetter,
     DoubleWord,
     TripleWord,
-    Blocked,
     Center
 }

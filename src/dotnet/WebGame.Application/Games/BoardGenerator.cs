@@ -49,7 +49,6 @@ public class BoardGenerator : IBoardGenerator
         'T' => LetterCellType.TripleLetter,
         'D' => LetterCellType.DoubleLetter,
         '*' => LetterCellType.Center,
-        'X' => LetterCellType.Blocked,
         _ => LetterCellType.Normal
     };
 
@@ -72,21 +71,21 @@ public class BoardGenerator : IBoardGenerator
     ];
 
     private static string[] GetArenaTemplate() => [
-        "XXXXX.....XXXXX",
-        "X3...D...D...3X",
-        "X.2...D.D...2.X",
-        "X..2...D...2..X",
-        "X...*.....*...X",
+        "...............",
+        ".3...D...D...3.",
+        "..2...D.D...2..",
+        "...2...D...2...",
+        "....*.....*....",
         "....D..*..D....",
         "..D...D.D...D..",
         "..D..*.*.*..D..",
         "..D...D.D...D..",
         "....D..*..D....",
-        "X...*.....*...X",
-        "X..2...D...2..X",
-        "X.2...D.D...2.X",
-        "X3...D...D...3X",
-        "XXXXX.....XXXXX"
+        "....*.....*....",
+        "...2...D...2...",
+        "..2...D.D...2..",
+        ".3...D...D...3.",
+        "..............."
     ];
 
     private static string[] GetWildlandsTemplate() => [
