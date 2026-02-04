@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 using WebGame.Application.Constants;
 using WebGame.Domain.Common;
 using WebGame.Domain.Interfaces;
@@ -42,8 +43,6 @@ public class GameLobby : IGameLobby
         [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 3, false, null),
         [Guid.CreateVersion7()] = new GameLobbySeat(null, false, 4, false, null)
     };
-
-    #region Lobby State
     
     private static readonly LobbySettings DefaultLobbySettings = new(10, GameLanguage.Polish, 100, BoardType.Classic);
 
@@ -51,14 +50,22 @@ public class GameLobby : IGameLobby
     private readonly IGameContextService _gameContextService;
     private readonly IGameEngineFactory _gameEngineFactory;
     private readonly IRandomNameService _randomNameService;
+    private readonly ILogger<GameLobby> _logger;
 
-    public GameLobby(IGameContextService gameContextService, IGameEngineFactory gameEngineFactory, IRandomNameService randomNameService)
+    public GameLobby(
+        IGameContextService gameContextService, 
+        IGameEngineFactory gameEngineFactory, 
+        IRandomNameService randomNameService,
+        ILogger<GameLobby> logger)
     {
         _gameContextService = gameContextService;
         _gameEngineFactory = gameEngineFactory;
         _randomNameService = randomNameService;
+        _logger = logger;
         _lobbySettings = GetDefaultLobbySettings();
     }
+    
+    #region Lobby State
 
     private static readonly (int Min, int Max) SettingsTileRange = (50, 200);
     
@@ -66,6 +73,7 @@ public class GameLobby : IGameLobby
     
     public async Task<Result<JoinDetails>> AssignPlayer(Guid playerId, string playerConnectionId, string playerName)
     {
+        _logger.LogInformation("Lobby {LobbyId}: Assigning player {PlayerName} ({PlayerId})", LobbyId, playerName, playerId);
         var lobbyPlayer = new LobbyPlayer(playerId, playerConnectionId, playerName, false, null);
         _players.TryAdd(playerId, lobbyPlayer);
         
@@ -295,20 +303,24 @@ public class GameLobby : IGameLobby
     {
         if (!IsPlayerLobbyAdmin(playerId))
         {
+            _logger.LogWarning("Lobby {LobbyId}: Player {PlayerId} attempted to start game but is not admin.", LobbyId, playerId);
             return Result.Failure(Error.InvalidState);
         }
         
         if (State != GameLobbyState.Lobby)
         {
+            _logger.LogWarning("Lobby {LobbyId}: Attempt to start game in invalid state {State}.", LobbyId, State);
             return Result.Failure(Error.InvalidState);
         }
 
         if (_seats.Count(x => x.Value.PlayerId != null) < 2)
         {
+            _logger.LogWarning("Lobby {LobbyId}: Attempt to start game with insufficient players.", LobbyId);
             return Result.Failure(Error.InvalidState);
         }
         
         State = GameLobbyState.Game;
+        _logger.LogInformation("Lobby {LobbyId}: Game started.", LobbyId);
         
         await _gameContextService.NotifyGroup(LobbyGroupName, "Game has started.");
         
@@ -423,6 +435,7 @@ public class GameLobby : IGameLobby
                 return;
             }
             
+            _logger.LogInformation("Lobby {LobbyId}: Game finished.", LobbyId);
             gameFinishedDetails.PostGameDurationSeconds = PostGameDurationSeconds;
             
             GameFinishedDetails = gameFinishedDetails;

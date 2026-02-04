@@ -5,7 +5,6 @@ import {
   BotDifficulty,
   GameDetails,
   GameLobbyItem,
-  JoinResponse,
   LobbySettingsModel,
   LobbyStateDetails,
   MoveRequestModel,

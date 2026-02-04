@@ -1,13 +1,26 @@
 using System.Text.Json.Serialization;
+using Serilog;
+using Serilog.Events;
 using WebGame;
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    });
+try 
+{
+    var builder = WebApplication.CreateBuilder(args);
+    
+    builder.Host.UseSerilog();
+
+    builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
 
 builder.Services.AddOpenApi();
 
@@ -69,9 +82,18 @@ app.UseCors("Policy");
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapHubs();
-app.MapControllers();
+    app.MapHubs();
+    app.MapControllers();
 
-app.MapFallbackToFile("index.html");
+    app.MapFallbackToFile("index.html");
 
-app.Run();
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

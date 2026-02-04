@@ -26,9 +26,11 @@ public class LobbyManager(IEnumerable<IGameLobby> gameLobbies, ILogger<LobbyMana
         var gameLobby = GetLobbyById(lobbyId);
         if (gameLobby == null)
         {
+            logger.LogWarning("Player {PlayerId} attempted to join unknown lobby {LobbyId}", playerId, lobbyId);
             return Result<JoinDetails>.Failure(Error.InvalidState);
         }
         
+        logger.LogInformation("Player {PlayerId} ({PlayerName}) joining lobby {LobbyId}", playerId, playerName, lobbyId);
         var result = await gameLobby.AssignPlayer(playerId, playerConnectionId, playerName);
         _playerAssignedLobbies.TryAdd(playerConnectionId, gameLobby);
         return result;
@@ -53,6 +55,7 @@ public class LobbyManager(IEnumerable<IGameLobby> gameLobbies, ILogger<LobbyMana
     {
         if (_playerAssignedLobbies.TryRemove(playerConnectionId, out var gameLobby))
         {
+            logger.LogInformation("Player connection {ConnectionId} disconnected from lobby {LobbyId}", playerConnectionId, gameLobby.LobbyId);
             return await gameLobby.PlayerDisconnected(playerConnectionId);
         }
         
@@ -65,9 +68,11 @@ public class LobbyManager(IEnumerable<IGameLobby> gameLobbies, ILogger<LobbyMana
 
         if (lobby == null)
         {
+            logger.LogWarning("Player {PlayerId} attempted to leave lobby but is not in one.", playerId);
             return Result.Failure(Error.InvalidState);
         }
         
+        logger.LogInformation("Player {PlayerId} leaving lobby {LobbyId}", playerId, lobby.LobbyId);
         var result = await lobby.LeaveLobby(playerId);
         _playerAssignedLobbies.TryRemove(playerConnectionId, out _);
         return result;
@@ -127,9 +132,11 @@ public class LobbyManager(IEnumerable<IGameLobby> gameLobbies, ILogger<LobbyMana
     {
         if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
         {
+            logger.LogInformation("Player {PlayerId} starting game in lobby {LobbyId}", playerId, gameLobby.LobbyId);
             return await gameLobby.StartGame(playerId);
         }
         
+        logger.LogWarning("Player {PlayerId} attempted to start game but is not in a lobby.", playerId);
         return Result.Failure(Error.InvalidState);
     }
 

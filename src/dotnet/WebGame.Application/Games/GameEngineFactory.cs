@@ -1,4 +1,5 @@
-﻿using WebGame.Domain.Interfaces.Games;
+﻿using Microsoft.Extensions.Logging;
+using WebGame.Domain.Interfaces.Games;
 using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.MoveCalculations;
 using WebGame.Domain.Interfaces.Languages;
@@ -11,10 +12,12 @@ public class GameEngineFactory(
     IGameLanguageProviderFactory gameLanguageProviderFactory,
     IBoardGenerator boardGenerator,
     IMoveValueCalculator moveValueCalculator,
-    IEnumerable<IBotStrategy> botStrategies) : IGameEngineFactory
+    IEnumerable<IBotStrategy> botStrategies,
+    ILoggerFactory loggerFactory) : IGameEngineFactory
 {
     public ILetterGameEngine CreateEngine(LobbySettings settings, List<LobbyPlayerDetails> players, Action onStateChanged, Action<GameFinishedDetails> onGameFinished)
     {
+        var logger = loggerFactory.CreateLogger<LetterGameEngine>();
         return new LetterGameEngine(
             gameLanguageProviderFactory,
             boardGenerator,
@@ -23,6 +26,7 @@ public class GameEngineFactory(
             players,
             onStateChanged,
             onGameFinished,
-            botStrategies);
+            botStrategies,
+            logger);
     }
 }

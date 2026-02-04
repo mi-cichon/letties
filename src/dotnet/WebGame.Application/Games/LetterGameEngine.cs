@@ -1,4 +1,5 @@
-﻿using WebGame.Domain.Common;
+﻿using Microsoft.Extensions.Logging;
+using WebGame.Domain.Common;
 using WebGame.Domain.Interfaces.Bots;
 using WebGame.Domain.Interfaces.Games;
 using WebGame.Domain.Interfaces.Games.Details;
@@ -14,6 +15,8 @@ public class LetterGameEngine : ILetterGameEngine
 {
     private readonly LobbySettings _initialSettings;
     private readonly List<GamePlayer> _gamePlayers;
+    
+    private readonly ILogger<LetterGameEngine> _logger;
 
     private readonly IGameLanguageProvider _languageProvider;
     private readonly IMoveValueCalculator _moveValueCalculator;
@@ -54,8 +57,10 @@ public class LetterGameEngine : ILetterGameEngine
         List<LobbyPlayerDetails> players,
         Action onStateChanged,
         Action<GameFinishedDetails>  onGameFinished,
-        IEnumerable<IBotStrategy> botStrategies)
+        IEnumerable<IBotStrategy> botStrategies,
+        ILogger<LetterGameEngine> logger)
     {
+        _logger = logger;
         _botStrategies = botStrategies;
         _initialSettings = initialSettings;
         _gamePlayers = players
@@ -64,6 +69,8 @@ public class LetterGameEngine : ILetterGameEngine
             .OrderBy(x => x.IsBot)
             .ToList();
         
+        _logger.LogInformation("Initializing LetterGameEngine with {PlayerCount} players. Settings: {@Settings}", _gamePlayers.Count, initialSettings);
+
         _languageProvider = gameLanguageProviderFactory.CreateProvider(initialSettings.Language);
         _boardLayout = boardGenerator.GenerateBoard(_initialSettings.BoardType);
         _moveValueCalculator = moveValueCalculator;
@@ -128,10 +135,12 @@ public class LetterGameEngine : ILetterGameEngine
     {
         if (_playerHands.TryGetValue(playerId, out var hand))
         {
+            _logger.LogInformation("Setting player {PlayerId} online status to {IsOnline}", playerId, isOnline);
             hand.IsOnline = isOnline;
             return Result.Success();
         }
 
+        _logger.LogWarning("Attempted to set online status for unknown player {PlayerId}", playerId);
         return Result.Failure(Error.InvalidState);
     }
 
@@ -139,6 +148,7 @@ public class LetterGameEngine : ILetterGameEngine
     {
         if (playerId != _currentTurnPlayerId)
         {
+            _logger.LogWarning("Player {PlayerId} attempted move but it's not their turn. Current turn: {CurrentTurnPlayerId}", playerId, _currentTurnPlayerId);
             return new MoveResult(false, MoveErrors.WrongTurn, "Not your turn!");
         }
 
@@ -150,6 +160,7 @@ public class LetterGameEngine : ILetterGameEngine
             var tile = playerHand.Tiles.FirstOrDefault(t => t.TileId == placement.TileId);
             if (tile == null)
             {
+                _logger.LogWarning("Player {PlayerId} attempted to place tile {TileId} which is not in their hand.", playerId, placement.TileId);
                 return new MoveResult(false, MoveErrors.TileNotInHand, "Tile not in hand!");
             }
 
@@ -159,22 +170,26 @@ public class LetterGameEngine : ILetterGameEngine
             {
                 if (!isBlankTile)
                 {
+                    _logger.LogWarning("Player {PlayerId} provided SelectedValueId for non-blank tile {TileId}.", playerId, tile.TileId);
                     return Result<MoveResult>.Failure(Error.InvalidArgument);
                 }
 
                 if (!_tileDefById.ContainsKey(placement.SelectedValueId.Value))
                 {
+                    _logger.LogWarning("Player {PlayerId} provided invalid SelectedValueId {SelectedValueId}.", playerId, placement.SelectedValueId);
                     return Result<MoveResult>.Failure(Error.InvalidArgument);
                 }
 
                 if (_blankValueId != null && placement.SelectedValueId.Value == _blankValueId)
                 {
+                    _logger.LogWarning("Player {PlayerId} selected blank value for blank tile.", playerId);
                     return Result<MoveResult>.Failure(Error.InvalidArgument);
                 }
             }
 
             if (isBlankTile && placement.SelectedValueId == null)
             {
+                _logger.LogWarning("Player {PlayerId} placed blank tile without selecting a value.", playerId);
                 return Result<MoveResult>.Failure(Error.InvalidArgument);
             }
 
@@ -183,6 +198,7 @@ public class LetterGameEngine : ILetterGameEngine
 
         if (request.Placements.Any(p => _placedTiles.Any(pt => pt.CellId == p.CellId)))
         {
+            _logger.LogWarning("Player {PlayerId} attempted to place tile on occupied cell.", playerId);
             return new MoveResult(false, MoveErrors.CellOccupied, "Cell is already occupied!");
         }
 
@@ -193,9 +209,11 @@ public class LetterGameEngine : ILetterGameEngine
     {
         if (playerId != _currentTurnPlayerId)
         {
+            _logger.LogWarning("Player {PlayerId} attempted to skip turn but it's not their turn.", playerId);
             return Result.Failure(Error.InvalidState);
         }
         
+        _logger.LogInformation("Player {PlayerId} skipping turn.", playerId);
         HandleScorelessTurn();
         
         var currentTurnStartedAt = _currentTurnStartedAt;
@@ -212,16 +230,19 @@ public class LetterGameEngine : ILetterGameEngine
     {
         if (playerId != _currentTurnPlayerId)
         {
+            _logger.LogWarning("Player {PlayerId} attempted to swap tiles but it's not their turn.", playerId);
             return Result.Failure(Error.InvalidState);
         }
 
         if (tileIdsToSwap.Count == 0)
         {
+            _logger.LogWarning("Player {PlayerId} attempted to swap 0 tiles.", playerId);
             return Result.Failure(Error.InvalidArgument);
         }
 
         if (_tileBag.Count < 7)
         {
+            _logger.LogWarning("Player {PlayerId} attempted to swap tiles but bag has fewer than 7 tiles ({Count}).", playerId, _tileBag.Count);
             return Result.Failure(Error.InvalidState);
         }
 
@@ -233,10 +254,13 @@ public class LetterGameEngine : ILetterGameEngine
             var tile = playerHand.Tiles.FirstOrDefault(t => t.TileId == tileId);
             if (tile == null)
             {
+                _logger.LogWarning("Player {PlayerId} attempted to swap tile {TileId} which is not in hand.", playerId, tileId);
                 return Result.Failure(Error.InvalidArgument);
             }
             tilesToReturn.Add(tile);
         }
+        
+        _logger.LogInformation("Player {PlayerId} swapping {Count} tiles.", playerId, tilesToReturn.Count);
 
         foreach (var tile in tilesToReturn)
         {
@@ -271,6 +295,7 @@ public class LetterGameEngine : ILetterGameEngine
         
         if (currentTurnPlayerHand.RemainingTime <= timeElapsed)
         {
+            _logger.LogInformation("Player {PlayerId} time depleted.", _currentTurnPlayerId);
             currentTurnPlayerHand.RemainingTime = TimeSpan.Zero;
             currentTurnPlayerHand.TimeDepleted = true;
             _consecutiveScorelessTurns = 0;
@@ -280,12 +305,14 @@ public class LetterGameEngine : ILetterGameEngine
         
         if (_playerHands.All(h => h.Value.TimeDepleted))
         {
+            _logger.LogInformation("All players time depleted. Finishing game.");
             FinishGame();
         }
 
         if (_playerHands.Where(x => !_gamePlayers.First(p => p.PlayerId == x.Key).IsBot)
             .All(h => !h.Value.IsOnline && h.Value.TimeDepleted))
         {
+            _logger.LogInformation("All human players are offline and time depleted. Finishing game.");
             FinishGame();
         }
         
@@ -309,11 +336,13 @@ public class LetterGameEngine : ILetterGameEngine
 
         if (!ValidateConnectivity(proposedMoves))
         {
+            _logger.LogWarning("Player {PlayerId} move failed: Tiles not connected.", playerId);
             return new MoveResult(false, MoveErrors.TilesNotConnected, "Tiles are not connected!");
         }
 
         if (!ValidateLine(proposedMoves))
         {
+            _logger.LogWarning("Player {PlayerId} move failed: Tiles not inline.", playerId);
             return new MoveResult(false, MoveErrors.TilesNotInline, "Tiles are not in a line!");
         }
 
@@ -321,6 +350,7 @@ public class LetterGameEngine : ILetterGameEngine
 
         if (wordScanResult.FormedWords.Count == 0)
         {
+            _logger.LogWarning("Player {PlayerId} move failed: No words formed.", playerId);
             return new MoveResult(false, MoveErrors.InvalidWord, "Move must create at least one word!");
         }
 
@@ -328,6 +358,7 @@ public class LetterGameEngine : ILetterGameEngine
         {
             if (!_languageProvider.IsWordInLanguage(word.Text))
             {
+                _logger.LogWarning("Player {PlayerId} move failed: Invalid word '{Word}'.", playerId, word.Text);
                 return new MoveResult(false, MoveErrors.InvalidWord, $"Word '{word.Text}' is not valid!");
             }
         }
@@ -345,6 +376,8 @@ public class LetterGameEngine : ILetterGameEngine
             _playerHands[playerId].Tiles.Remove(toRemove);
         }
 
+        _logger.LogInformation("Player {PlayerId} played valid move. Points: {Points}. Words: {Words}", playerId, wordScanResult.PointsEarned, string.Join(", ", wordScanResult.FormedWords.Select(w => w.Text)));
+
         _playerScores[playerId] += wordScanResult.PointsEarned;
 
         var newTiles = DrawTiles(placements.Count);
@@ -361,6 +394,7 @@ public class LetterGameEngine : ILetterGameEngine
 
         if (_tileBag.Count == 0 && _playerHands[playerId].Tiles.Count == 0)
         {
+            _logger.LogInformation("Game over trigger: Tile bag empty and player {PlayerId} hand empty.", playerId);
             FinishGame();
             return new MoveResult(true, null, null);
         }
@@ -480,14 +514,21 @@ public class LetterGameEngine : ILetterGameEngine
                 _botPlaying = false;
                 return;
             }
+            
+            _logger.LogInformation("Starting bot turn for {PlayerName} ({PlayerId})", currentTurnPlayer.PlayerName, currentTurnPlayer.PlayerId);
         
             _ = Task.Run(async () =>
             {
                 try
                 {
                     var result = await HandleBotMoveAsync(currentTurnPlayer.PlayerId);
-                    if (result.IsFailure)
+                    if (result.IsSuccess)
                     {
+                        _logger.LogInformation("Bot {PlayerName} move successful.", currentTurnPlayer.PlayerName);
+                    }
+                    else
+                    {
+                         _logger.LogWarning("Bot {PlayerName} move failed: {Error}", currentTurnPlayer.PlayerName, result.Error);
                         lock (_lock)
                         {
                             if (_currentTurnPlayerId == currentTurnPlayer.PlayerId)
@@ -501,7 +542,7 @@ public class LetterGameEngine : ILetterGameEngine
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex);
+                    _logger.LogError(ex, "Error during bot {PlayerName} turn execution", currentTurnPlayer.PlayerName);
                     lock (_lock)
                     {
                         if (_currentTurnPlayerId == currentTurnPlayer.PlayerId)
@@ -613,6 +654,8 @@ public class LetterGameEngine : ILetterGameEngine
                 return new GameFinishedPlayerDetails(x.PlayerId, x.PlayerName, playerScore);
             }).ToList();
         
+            _logger.LogInformation("Game finished. Duration: {Duration}. Scores: {@Scores}", gameElapsedTime, playersDetails);
+
             var gameFinishedDetails = new GameFinishedDetails(playersDetails, gameElapsedTime, finishedAt);
             OnGameFinished.Invoke(gameFinishedDetails);
         }
