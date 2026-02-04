@@ -46,7 +46,10 @@
     "boardClassic": "Klasyczna",
     "boardArena": "Arena",
     "boardWildlands": "Pustkowia",
-    "boardWidelands": "Piastkowia",
+    "boardBigClassic": "Klasyczna duża",
+    "boardIslands": "Wyspy",
+    "boardStronghold": "Twierdza",
+    "boardCrossfire": "Ogień krzyżowy",
     "addBot": "Dodaj bota",
     "removeBot": "Usuń bota",
     "bot": {

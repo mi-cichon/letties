@@ -138,10 +138,28 @@
                 {{ 'lobby.boardWildlands' | transloco }}
               </button>
               <button
-                [class.active]="lobbyState()?.settings?.boardType === boardType.Widelands"
-                (click)="updateSetting('boardType', boardType.Widelands)"
+                [class.active]="lobbyState()?.settings?.boardType === boardType.BigClassic"
+                (click)="updateSetting('boardType', boardType.BigClassic)"
               >
-                {{ 'lobby.boardWidelands' | transloco }}
+                {{ 'lobby.boardBigClassic' | transloco }}
+              </button>
+              <button
+                [class.active]="lobbyState()?.settings?.boardType === boardType.Crossfire"
+                (click)="updateSetting('boardType', boardType.Crossfire)"
+              >
+                {{ 'lobby.boardCrossfire' | transloco }}
+              </button>
+              <button
+                [class.active]="lobbyState()?.settings?.boardType === boardType.Islands"
+                (click)="updateSetting('boardType', boardType.Islands)"
+              >
+                {{ 'lobby.boardIslands' | transloco }}
+              </button>
+              <button
+                [class.active]="lobbyState()?.settings?.boardType === boardType.Stronghold"
+                (click)="updateSetting('boardType', boardType.Stronghold)"
+              >
+                {{ 'lobby.boardStronghold' | transloco }}
               </button>
             </div>
           </div>

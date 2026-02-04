@@ -46,7 +46,10 @@
     "boardClassic": "Classic",
     "boardArena": "Arena",
     "boardWildlands": "Wildlands",
-    "boardWidelands": "Widelands",
+    "boardBigClassic": "Big classic",
+    "boardIslands": "Islands",
+    "boardStronghold": "Stronghold",
+    "boardCrossfire": "Crossfire",
     "addBot": "Add bot",
     "removeBot": "Remove bot",
     "bot": {

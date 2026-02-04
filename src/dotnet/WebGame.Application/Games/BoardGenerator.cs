@@ -14,7 +14,10 @@ public class BoardGenerator : IBoardGenerator
             BoardType.Classic => GenerateFromTemplate(GetClassicTemplate()),
             BoardType.Arena => GenerateFromTemplate(GetArenaTemplate()),
             BoardType.Wildlands => GenerateFromTemplate(GetWildlandsTemplate()),
-            BoardType.Widelands => GenerateFromTemplate(GetWidelandsTemplate()),
+            BoardType.BigClassic => GenerateFromTemplate(GetBigClassicTemplate()),
+            BoardType.Crossfire => GenerateFromTemplate(GetCrossfireTemplate()),
+            BoardType.Islands => GenerateFromTemplate(GetIslandsTemplate()),
+            BoardType.Stronghold => GenerateFromTemplate(GetStrongholdTemplate()),
             _ => throw new ArgumentException($"Unknown board type: {boardType}")
         };
     }
@@ -106,7 +109,7 @@ public class BoardGenerator : IBoardGenerator
         "3....T...T....3"
     ];
 
-    private static string[] GetWidelandsTemplate() =>
+    private static string[] GetBigClassicTemplate() =>
     [
         "3..D....3....D..3",
         ".2....T...T....2.",
@@ -125,5 +128,64 @@ public class BoardGenerator : IBoardGenerator
         "..2....D.D....2..",
         ".2....T...T....2.",
         "3..D....3....D..3"
+    ];
+
+    private static string[] GetCrossfireTemplate() =>
+    [
+        "3.....D.D.....3",
+        ".3...T...T...3.",
+        "..3.2.....2.3..",
+        "...3.......3...",
+        "....2.....2....",
+        "DT...D...D...TD",
+        "......D.D......",
+        "D......*......D",
+        "......D.D......",
+        "DT...D...D...TD",
+        "....2.....2....",
+        "...3.......3...",
+        "..3.2.....2.3..",
+        ".3...T...T...3.",
+        "3.....D.D.....3"
+    ];
+
+    private static string[] GetIslandsTemplate() =>
+    [
+        "3..D...3...D..3",
+        ".2..T.....T..2.",
+        "..D.........D..",
+        "D..2.......2..D",
+        ".T..D.....D..T.",
+        ".....T...T.....",
+        "......2.2......",
+        "3......*......3",
+        "......2.2......",
+        ".....T...T.....",
+        ".T..D.....D..T.",
+        "D..2.......2..D",
+        "..D.........D..",
+        ".2..T.....T..2.",
+        "3..D...3...D..3"
+    ];
+
+    private static string[] GetStrongholdTemplate() =>
+    [
+        "3.....D...D.....3",
+        ".2.............2.",
+        "..D...........D..",
+        "...T.........T...",
+        "....2.......2....",
+        ".....D.....D.....",
+        "D.....T...T.....D",
+        "......D.D.D......",
+        "......D.*.D......",
+        "......D.D.D......",
+        "D.....T...T.....D",
+        ".....D.....D.....",
+        "....2.......2....",
+        "...T.........T...",
+        "..D...........D..",
+        ".2.............2.",
+        "3.....D...D.....3"
     ];
 }
