@@ -1,26 +1,14 @@
 using System.Text.Json.Serialization;
 using Serilog;
-using Serilog.Events;
 using WebGame;
 
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
-    .CreateLogger();
+var builder = WebApplication.CreateBuilder(args);
 
-try 
-{
-    var builder = WebApplication.CreateBuilder(args);
-    
-    builder.Host.UseSerilog();
+builder.Host.UseSerilog((context, _, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration));
 
-    builder.Services.AddControllers()
-        .AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        });
+builder.Services.AddControllers()
+    .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
 
 builder.Services.AddOpenApi();
 
@@ -39,13 +27,13 @@ builder.Services.AddGameLobbies(builder.Configuration);
 
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
-var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() 
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
                      ?? ["http://localhost:4200"];
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: "Policy",
-        policy  =>
+        policy =>
         {
             policy.WithOrigins(allowedOrigins)
                 .AllowCredentials()
@@ -64,6 +52,7 @@ app.Use(async (context, next) =>
         context.Response.Headers["Pragma"] = "no-cache";
         context.Response.Headers["Expires"] = "0";
     }
+
     await next();
 });
 
@@ -82,18 +71,9 @@ app.UseCors("Policy");
 app.UseAuthentication();
 app.UseAuthorization();
 
-    app.MapHubs();
-    app.MapControllers();
+app.MapHubs();
+app.MapControllers();
 
-    app.MapFallbackToFile("index.html");
+app.MapFallbackToFile("index.html");
 
-    app.Run();
-}
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Application terminated unexpectedly");
-}
-finally
-{
-    Log.CloseAndFlush();
-}
+app.Run();

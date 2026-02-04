@@ -34,7 +34,7 @@ public class GameLobby : IGameLobby
     
     private readonly Lock _sync = new();
 
-    private const int PostGameDurationSeconds = 30;
+    private const int PostGameDurationSeconds = 3000;
 
     private readonly ConcurrentDictionary<Guid, GameLobbySeat> _seats = new()
     {

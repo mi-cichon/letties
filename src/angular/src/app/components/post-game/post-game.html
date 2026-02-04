@@ -6,36 +6,76 @@
     </div>
   </div>
 
-  <div class="leaderboard-card">
-    <div class="player-row header-row">
-      <span class="rank">#</span>
-      <span class="name">{{ 'postGame.player' | transloco }}</span>
-      <span class="points">{{ 'postGame.score' | transloco }}</span>
-    </div>
+  <div class="content-grid">
+    <section class="leaderboard-section">
+      <h2 class="section-title">{{ 'postGame.leaderboard' | transloco }}</h2>
+      <div class="leaderboard-card">
+        <div class="player-row header-row">
+          <span class="rank">#</span>
+          <span class="name">{{ 'postGame.player' | transloco }}</span>
+          <span class="points">{{ 'postGame.score' | transloco }}</span>
+        </div>
 
-    @for (player of sortedPlayers(); track player.playerId; let i = $index) {
-      <div class="player-row" [class.winner]="i === 0">
-        <span class="rank">
-          @if (i === 0) {
-            👑
-          } @else {
-            {{ i + 1 }}
-          }
-        </span>
-        <span class="name"
-          >{{ player.playerName }}
-          @let botInfo = player.playerId! | getBotInfo: lobbyState()!.players!;
-          @if (botInfo.isBot) {
-            <span class="bot-icon" title="Bot">🤖{{ botInfo.difficultyText }}</span>
-          }
-        </span>
-        <span class="points">{{ player.playerPoints }} p.</span>
+        @for (player of sortedPlayers(); track player.playerId; let i = $index) {
+          <div class="player-row" [class.winner]="i === 0">
+            <span class="rank">
+              @if (i === 0) {
+                👑
+              } @else {
+                {{ i + 1 }}
+              }
+            </span>
+            <span class="name">
+              {{ player.playerName }}
+              @let botInfo = player.playerId! | getBotInfo: lobbyState()?.players || [];
+              @if (botInfo.isBot) {
+                <span class="bot-icon" title="Bot">🤖{{ botInfo.difficultyText }}</span>
+              }
+            </span>
+            <span class="points">{{ player.playerPoints }} p.</span>
+          </div>
+        }
       </div>
-    }
+    </section>
+
+    <section class="history-section">
+      <h2 class="section-title">{{ 'postGame.moveHistory' | transloco }}</h2>
+      <div class="history-card">
+        <div class="history-header">
+          <span>{{ 'postGame.player' | transloco }}</span>
+          <span>{{ 'postGame.move' | transloco }}</span>
+          <span>{{ 'postGame.pts' | transloco }}</span>
+        </div>
+        <div class="history-list scrollbar">
+          @for (move of moveHistory(); track $index) {
+            <div class="history-item">
+              <div class="move-player">
+                <span class="player-name">{{ move.playerName }}</span>
+              </div>
+              <div class="move-content">
+                <div class="word-list">
+                  @for (word of move.words; track word) {
+                    <span class="word-tag">{{ word }}</span>
+                  } @empty {
+                    <span class="skipped-tag">{{ 'postGame.skipped' | transloco }}</span>
+                  }
+                </div>
+              </div>
+              <div class="move-points">
+                <span class="points-val">+{{ move.gainedPoints }}</span>
+                <span class="total-val">{{ move.totalPoints }}</span>
+              </div>
+            </div>
+          } @empty {
+            <div class="empty-history">{{ 'postGame.noMoves' | transloco }}</div>
+          }
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="footer-info">
     {{ 'postGame.duration' | transloco }}:
-    {{ lobbyState()!.gameFinishedDetails!.gameDuration!.split('.')[0] }}
+    {{ lobbyState()?.gameFinishedDetails?.gameDuration!.split('.')[0] }}
   </div>
 </div>

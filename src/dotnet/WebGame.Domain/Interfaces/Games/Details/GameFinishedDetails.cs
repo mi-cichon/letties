@@ -15,4 +15,6 @@ public class GameFinishedDetails(
 
 public record GameFinishedPlayerDetails(Guid PlayerId, string PlayerName, int PlayerPoints);
 
-public record MoveHistoricDetails(Guid PlayerId, string PlayerName, int GainedPoints, int TotalPoints, List<string> Words);
+public record MoveHistoricDetails(Guid PlayerId, string PlayerName, int GainedPoints, int TotalPoints, List<string> Words, BestMoveHistoricDetails BestMove, DateTimeOffset MoveTime);
+
+public record BestMoveHistoricDetails(List<string> Word, int Points);

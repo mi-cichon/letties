@@ -1,4 +1,6 @@
-﻿using WebGame.Domain.Interfaces.Bots;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+using WebGame.Domain.Interfaces.Bots;
 using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.Models;
 using WebGame.Domain.Interfaces.Games.MoveCalculations;
@@ -10,7 +12,8 @@ namespace WebGame.Application.Bots;
 public class HardBotStrategy(
     IGameLanguageProviderFactory languageProviderFactory,
     IMoveSimulator moveSimulator,
-    IMoveValueCalculator moveValueCalculator
+    IMoveValueCalculator moveValueCalculator,
+    ILogger<HardBotStrategy> logger
     ) : IBotStrategy
 {
     private readonly Random _random = new();
@@ -28,6 +31,8 @@ public class HardBotStrategy(
     {
         var waitSeconds = _random.Next(WaitRangeSeconds.From, WaitRangeSeconds.To);
         await Task.Delay(waitSeconds * 1000);
+        
+        var start = Stopwatch.GetTimestamp();
 
         if (placedTiles.Count == 0 && botHand.Tiles.Count == 0)
         {
@@ -95,6 +100,8 @@ public class HardBotStrategy(
             )).ToList()
         );
 
+        var elapsed = Stopwatch.GetElapsedTime(start);
+        logger.LogDebug("Hard bot move calculation took {ElapsedMilliseconds} ms.", elapsed.TotalMilliseconds);
         return new MakeMoveAction(moveRequest);
     }
 }

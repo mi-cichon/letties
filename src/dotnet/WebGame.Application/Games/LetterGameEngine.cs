@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using WebGame.Domain.Common;
 using WebGame.Domain.Interfaces.Bots;
 using WebGame.Domain.Interfaces.Games;
@@ -20,6 +21,7 @@ public class LetterGameEngine : ILetterGameEngine
 
     private readonly IGameLanguageProvider _languageProvider;
     private readonly IMoveValueCalculator _moveValueCalculator;
+    private readonly IMoveSimulator _moveSimulator;
 
     private readonly BoardLayoutDetails _boardLayout;
     private readonly IEnumerable<IBotStrategy> _botStrategies;
@@ -54,6 +56,7 @@ public class LetterGameEngine : ILetterGameEngine
         IGameLanguageProviderFactory gameLanguageProviderFactory,
         IBoardGenerator boardGenerator,
         IMoveValueCalculator moveValueCalculator,
+        IMoveSimulator moveSimulator,
         LobbySettings initialSettings,
         List<LobbyPlayerDetails> players,
         Action onStateChanged,
@@ -63,6 +66,7 @@ public class LetterGameEngine : ILetterGameEngine
     {
         _logger = logger;
         _botStrategies = botStrategies;
+        _moveSimulator = moveSimulator;
         _initialSettings = initialSettings;
         _gamePlayers = players
             .Select(x => new GamePlayer(x.PlayerId, x.PlayerName, x.IsBot, x.BotDifficulty))
@@ -215,14 +219,9 @@ public class LetterGameEngine : ILetterGameEngine
         }
         
         _logger.LogInformation("Player {PlayerId} skipping turn.", playerId);
+        
         HandleScorelessTurn();
-        
-        var currentTurnStartedAt = _currentTurnStartedAt;
         RotateTurn();
-        SubtractTime(playerId, currentTurnStartedAt, false);
-        NotifyStateChanged();
-        HandleBotTurns();
-        
         return Result.Success();
     }
     
@@ -279,12 +278,7 @@ public class LetterGameEngine : ILetterGameEngine
         foreach (var t in shuffled) _tileBag.Push(t);
         
         HandleScorelessTurn();
-
-        var currentTurnStartedAt = _currentTurnStartedAt;
         RotateTurn();
-        SubtractTime(playerId, currentTurnStartedAt, false);
-        NotifyStateChanged();
-        HandleBotTurns();
         
         return Result.Success();
     }
@@ -301,7 +295,6 @@ public class LetterGameEngine : ILetterGameEngine
             currentTurnPlayerHand.TimeDepleted = true;
             _consecutiveScorelessTurns = 0;
             RotateTurn();
-            NotifyStateChanged();
         }
         
         if (_playerHands.All(h => h.Value.TimeDepleted))
@@ -315,6 +308,11 @@ public class LetterGameEngine : ILetterGameEngine
         {
             _logger.LogInformation("All human players are offline and time depleted. Finishing game.");
             FinishGame();
+        }
+
+        if (!_botPlaying && _gamePlayers.First(x => x.PlayerId == _currentTurnPlayerId).IsBot)
+        {
+            HandleBotTurns();
         }
         
         return Result.Success();
@@ -346,8 +344,10 @@ public class LetterGameEngine : ILetterGameEngine
             _logger.LogWarning("Player {PlayerId} move failed: Tiles not inline.", playerId);
             return new MoveResult(false, MoveErrors.TilesNotInline, "Tiles are not in a line!");
         }
-
+        
         var wordScanResult = _moveValueCalculator.ScanForWords(_boardLayout, _tileDefById, _placedTiles, proposedMoves);
+        
+        CalculateHistoricalScore(playerId, wordScanResult);
 
         if (wordScanResult.FormedWords.Count == 0)
         {
@@ -393,34 +393,92 @@ public class LetterGameEngine : ILetterGameEngine
             HandleScorelessTurn();
         }
         
-        var playerName = _gamePlayers.First(p => p.PlayerId == playerId).PlayerName;
-
-        var historicMove = new MoveHistoricDetails(
-            playerId, 
-            playerName, 
-            wordScanResult.PointsEarned,
-            _playerScores[playerId], 
-            wordScanResult.FormedWords
-                .Select(w => w.Text).ToList());
-        
-        _moveHistory.Add(historicMove);
-        
         if (_tileBag.Count == 0 && _playerHands[playerId].Tiles.Count == 0)
         {
             _logger.LogInformation("Game over trigger: Tile bag empty and player {PlayerId} hand empty.", playerId);
             FinishGame();
             return new MoveResult(true, null, null);
         }
-
-        var currentTurnStartedAt = _currentTurnStartedAt;
         RotateTurn();
-        SubtractTime(playerId, currentTurnStartedAt, true);
-
-        NotifyStateChanged();
         
-        HandleBotTurns();
-
         return new MoveResult(true, null, null);
+    }
+
+    private void CalculateHistoricalScore(
+        Guid playerId,
+        MoveCalculationResult wordScanResult)
+    {
+        var boardLayoutSnapshot = _boardLayout with { Cells = _boardLayout.Cells.Select(x => new BoardCellDetails(x.Id, x.X, x.Y, x.Type)).ToList() };
+        var placedTilesSnapshot = _placedTiles.Select(pt => pt with {}).ToList();
+        var playerHandSnapshot = _playerHands[playerId].Tiles.Select(t => t with {}).ToList();
+        var playerScoreSnapshot = _playerScores[playerId];
+        var moveTime = DateTimeOffset.UtcNow;
+        
+        var allPossibleMoves = _moveSimulator.SimulateMoves(
+            _initialSettings.Language,
+            7,
+            boardLayoutSnapshot,
+            placedTilesSnapshot,
+            playerHandSnapshot
+        );
+
+        Task.Run(() =>
+        {
+            var start = Stopwatch.GetTimestamp();
+            MoveCalculationResult? bestMove = null;
+
+            foreach (var possibleMove in allPossibleMoves)
+            {
+                var proposedPossibleMove = possibleMove.Placements
+                    .Select(p =>
+                    {
+
+                        var tileInstance = playerHandSnapshot.First(t => t.TileId == p.TileId);
+
+                        var displayValueId = p.SelectedValueId ?? tileInstance.ValueId;
+
+                        return new ProposedMove(
+                            _boardLayout.Cells.First(c => c.Id == p.CellId),
+                            tileInstance with { SelectedValueId = p.SelectedValueId },
+                            _tileDefById[tileInstance.ValueId],
+                            _tileDefById[displayValueId]);
+                    })
+                    .ToList();
+
+                var calcResult = _moveValueCalculator.ScanForWords(boardLayoutSnapshot, _tileDefById,
+                    placedTilesSnapshot, proposedPossibleMove);
+                if (bestMove == null)
+                {
+                    bestMove = calcResult;
+                    continue;
+                }
+
+                if (calcResult.PointsEarned > bestMove.PointsEarned)
+                {
+                    bestMove = calcResult;
+                }
+            }
+
+            var possibleBestMove =
+                new BestMoveHistoricDetails(bestMove!.FormedWords.Select(x => x.Text).ToList(), bestMove.PointsEarned);
+
+            var playerName = _gamePlayers.First(p => p.PlayerId == playerId).PlayerName;
+
+            var historicMove = new MoveHistoricDetails(
+                playerId,
+                playerName,
+                wordScanResult.PointsEarned,
+                playerScoreSnapshot + wordScanResult.PointsEarned,
+                wordScanResult.FormedWords
+                    .Select(w => w.Text).ToList(),
+                possibleBestMove,
+                moveTime
+            );
+
+            _moveHistory.Add(historicMove);
+            var elapsed = Stopwatch.GetElapsedTime(start);
+            _logger.LogDebug("Historic move calculation took {ElapsedMilliseconds} ms.", elapsed.TotalMilliseconds);
+        });
     }
 
     private bool ValidateConnectivity(List<ProposedMove> proposedMoves)
@@ -501,8 +559,10 @@ public class LetterGameEngine : ILetterGameEngine
 
             if (_playerHands.TryGetValue(candidatePlayer.PlayerId, out var hand) && !hand.TimeDepleted)
             {
+                SubtractTime(_currentTurnPlayerId, _currentTurnStartedAt, true);
                 _currentTurnPlayerId = candidatePlayer.PlayerId;
                 _currentTurnStartedAt = DateTimeOffset.UtcNow;
+                NotifyStateChanged();
                 return;
             }
         }
@@ -542,36 +602,23 @@ public class LetterGameEngine : ILetterGameEngine
                     else
                     {
                          _logger.LogWarning("Bot {PlayerName} move failed: {Error}", currentTurnPlayer.PlayerName, result.Error);
-                        lock (_lock)
-                        {
-                            if (_currentTurnPlayerId == currentTurnPlayer.PlayerId)
-                            {
-                                SubtractTime(currentTurnPlayer.PlayerId, _currentTurnStartedAt, false);
-                                RotateTurn();
-                                NotifyStateChanged();
-                            }
-                        }
+                         if (_currentTurnPlayerId == currentTurnPlayer.PlayerId)
+                         {
+                             RotateTurn();
+                         }
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error during bot {PlayerName} turn execution", currentTurnPlayer.PlayerName);
-                    lock (_lock)
+                    if (_currentTurnPlayerId == currentTurnPlayer.PlayerId)
                     {
-                        if (_currentTurnPlayerId == currentTurnPlayer.PlayerId)
-                        {
-                            SubtractTime(currentTurnPlayer.PlayerId, _currentTurnStartedAt, false);
-                            RotateTurn();
-                            NotifyStateChanged();
-                        }
+                        RotateTurn();
                     }
                 }
                 finally
                 {
-                    lock (_lock)
-                    {
-                        _botPlaying = false;
-                    }
+                    _botPlaying = false;
                 }
             });
         }
@@ -611,10 +658,20 @@ public class LetterGameEngine : ILetterGameEngine
             switch (action)
             {
                 case MakeMoveAction moveAction:
-                    HandleMove(playerBotId, moveAction.Move);
+                    var moveResult = HandleMove(playerBotId, moveAction.Move);
+                    if (!moveResult.IsSuccess)
+                    {
+                        _logger.LogWarning("Bot {PlayerName} move failed: {Error}. Skipping turn", botPlayer.PlayerName, moveResult.Error);
+                        HandleSkipTurn(playerBotId);
+                    }
                     break;
                 case SwapTilesAction swapAction:
-                    HandleSwapTiles(playerBotId, swapAction.TileIds);
+                    var swapResult = HandleSwapTiles(playerBotId, swapAction.TileIds);
+                    if (swapResult.IsFailure)
+                    {
+                        _logger.LogWarning("Bot {PlayerName} swap tiles failed: {Error}. Skipping turn", botPlayer.PlayerName, swapResult.Error);
+                        HandleSkipTurn(playerBotId);
+                    }
                     break;
                 case SkipTurnAction:
                     HandleSkipTurn(playerBotId);
@@ -669,7 +726,12 @@ public class LetterGameEngine : ILetterGameEngine
         
             _logger.LogInformation("Game finished. Duration: {Duration}. Scores: {@Scores}", gameElapsedTime, playersDetails);
 
-            var gameFinishedDetails = new GameFinishedDetails(playersDetails, _moveHistory, gameElapsedTime, finishedAt);
+            var gameFinishedDetails = new GameFinishedDetails(
+                playersDetails, 
+                _moveHistory.OrderBy(x => x.MoveTime).ToList(), 
+                gameElapsedTime, 
+                finishedAt);
+            
             OnGameFinished.Invoke(gameFinishedDetails);
         }
     }

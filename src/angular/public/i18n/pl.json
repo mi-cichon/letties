@@ -78,6 +78,10 @@
     "returningIn": "Powrót za",
     "player": "Gracz",
     "score": "Wynik",
-    "duration": "Czas trwania gry"
+    "duration": "Czas trwania gry",
+    "leaderboard": "Wyniki",
+    "moveHistory": "Historia ruchów",
+    "move": "Ruch",
+    "points": "Punkty"
   }
 }

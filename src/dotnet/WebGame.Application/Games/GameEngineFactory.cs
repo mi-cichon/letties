@@ -12,6 +12,7 @@ public class GameEngineFactory(
     IGameLanguageProviderFactory gameLanguageProviderFactory,
     IBoardGenerator boardGenerator,
     IMoveValueCalculator moveValueCalculator,
+    IMoveSimulator moveSimulator,
     IEnumerable<IBotStrategy> botStrategies,
     ILoggerFactory loggerFactory) : IGameEngineFactory
 {
@@ -22,6 +23,7 @@ public class GameEngineFactory(
             gameLanguageProviderFactory,
             boardGenerator,
             moveValueCalculator,
+            moveSimulator,
             settings, 
             players,
             onStateChanged,

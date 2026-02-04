@@ -78,6 +78,10 @@
     "returningIn": "Returning to lobby in",
     "player": "Player",
     "score": "Score",
-    "duration": "Game duration"
+    "duration": "Game duration",
+    "leaderboard": "Leaderboard",
+    "moveHistory": "Move history",
+    "move": "Move",
+    "points": "Points"
   }
 }

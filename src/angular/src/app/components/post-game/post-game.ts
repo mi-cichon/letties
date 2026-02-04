@@ -31,6 +31,10 @@ export class PostGame implements OnDestroy {
     return [...players].sort((a, b) => (b.playerPoints ?? 0) - (a.playerPoints ?? 0));
   });
 
+  public moveHistory = computed(() => {
+    return this.lobbyState()?.gameFinishedDetails?.moveHistory || [];
+  });
+
   constructor() {
     this.startCountdown();
   }
@@ -40,7 +44,7 @@ export class PostGame implements OnDestroy {
     if (!details) return;
 
     const finishedAt = new Date(details.finishedAt!).getTime();
-    const durationMs = details.postGameDurationSeconds! * 1000;
+    const durationMs = (details.postGameDurationSeconds || 30) * 1000;
     const endTime = finishedAt + durationMs;
 
     this.timerInterval = setInterval(() => {
