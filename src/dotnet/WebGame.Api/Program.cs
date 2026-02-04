@@ -16,6 +16,8 @@ builder.Services.AddSignalR().AddJsonProtocol(options =>
     options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
+builder.Services.AddLogging();
+
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddServices();

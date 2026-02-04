@@ -1,31 +1,32 @@
 ﻿using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
+using WebGame.Domain.Common;
 using WebGame.Domain.Interfaces.Bots;
 using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.Models;
 using WebGame.Domain.Interfaces.Lobbies;
 using WebGame.Domain.Interfaces.Lobbies.Details;
-using WebGame.Domain.Interfaces.Lobbies.Enums;
 using WebGame.Domain.Interfaces.Lobbies.Models;
 
 namespace WebGame.Application.Lobbies;
 
-public class LobbyManager(IEnumerable<IGameLobby> gameLobbies) : ILobbyManager
+public class LobbyManager(IEnumerable<IGameLobby> gameLobbies, ILogger<LobbyManager> logger) : ILobbyManager
 {
     private readonly ConcurrentDictionary<string, IGameLobby> _playerAssignedLobbies = new();
     
-    public IReadOnlyList<GameLobbyItem> GetLobbies()
+    public Result<IReadOnlyList<GameLobbyItem>> GetLobbies()
     {
         return gameLobbies
             .Select(lobby => new GameLobbyItem(lobby.LobbyId, lobby.State, lobby.PlayerCount))
             .ToList();
     }
     
-    public async Task<LobbyStateDetails> AssignPlayerToLobby(Guid playerId, Guid lobbyId, string playerConnectionId, string playerName)
+    public async Task<Result<JoinDetails>> AssignPlayerToLobby(Guid playerId, Guid lobbyId, string playerConnectionId, string playerName)
     {
         var gameLobby = GetLobbyById(lobbyId);
         if (gameLobby == null)
         {
-            throw new InvalidOperationException($"Lobby with id {lobbyId} not found.");
+            return Result<JoinDetails>.Failure(Error.InvalidState);
         }
         
         var result = await gameLobby.AssignPlayer(playerId, playerConnectionId, playerName);
@@ -33,128 +34,153 @@ public class LobbyManager(IEnumerable<IGameLobby> gameLobbies) : ILobbyManager
         return result;
     }
 
-    public LobbyStateDetails GetLobbyState(Guid playerId, string playerConnectionId)
+    public Result<LobbyStateDetails> GetLobbyState(Guid playerId, string playerConnectionId)
     {
         if (!_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
         {
-            gameLobby = _playerAssignedLobbies.Values.FirstOrDefault(lobby => lobby.IsPlayerInLobby(playerId));
+            gameLobby = _playerAssignedLobbies.Values.FirstOrDefault(lobby => lobby.IsPlayerInLobby(playerId).Value);
         }
 
         if (gameLobby == null)
         {
-            throw new InvalidOperationException("Player is not in a lobby.");
+            return Result<LobbyStateDetails>.Failure(Error.InvalidState);
         }
 
         return gameLobby.GetLobbyState();
     }
 
-    public async Task PlayerDisconnected(string playerConnectionId)
+    public async Task<Result> PlayerDisconnected(string playerConnectionId)
     {
         if (_playerAssignedLobbies.TryRemove(playerConnectionId, out var gameLobby))
         {
-            await gameLobby.PlayerDisconnected(playerConnectionId);
+            return await gameLobby.PlayerDisconnected(playerConnectionId);
         }
+        
+        return Result.Success();
     }
 
-    public async Task LeaveLobby(Guid playerId, string playerConnectionId)
+    public async Task<Result> LeaveLobby(Guid playerId, string playerConnectionId)
     {
-        var lobby = gameLobbies.FirstOrDefault(lobby => lobby.IsPlayerInLobby(playerId));
+        var lobby = gameLobbies.FirstOrDefault(lobby => lobby.IsPlayerInLobby(playerId).Value);
 
         if (lobby == null)
         {
-            return;
+            return Result.Failure(Error.InvalidState);
         }
         
-        await lobby.LeaveLobby(playerId);
+        var result = await lobby.LeaveLobby(playerId);
         _playerAssignedLobbies.TryRemove(playerConnectionId, out _);
+        return result;
     }
 
-    public async Task SendMessage(string playerConnectionId, string playerName, string message)
+    public async Task<Result> SendMessage(string playerConnectionId, string playerName, string message)
     {
         if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
         {
             await gameLobby.SendMessage(playerName, message);
         }
+        
+        return Result.Success();
     }
 
-    public async Task<bool> JoinSeat(string playerConnectionId, Guid playerId, Guid seatId)
+    public async Task<Result> JoinSeat(string playerConnectionId, Guid playerId, Guid seatId)
     {
         if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
         {
             return await gameLobby.JoinSeat(playerId, seatId);
         }
 
-        return false;
+        return Result.Failure(Error.InvalidState);
     }
     
-    public async Task LeaveSeat(string playerConnectionId, Guid playerId)
+    public async Task<Result> LeaveSeat(string playerConnectionId, Guid playerId)
     {
         if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
         {
-            await gameLobby.LeaveSeat(playerId);
+            return await gameLobby.LeaveSeat(playerId);
         }
+        
+        return Result.Failure(Error.InvalidState);
     }
 
-    public async Task UpdateLobbySettings(string playerConnectionId, Guid playerId, LobbySettingsModel settingsModel)
+    public async Task<Result> UpdateLobbySettings(string playerConnectionId, Guid playerId, LobbySettingsModel settingsModel)
     {
         if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
         {
-            await gameLobby.UpdateLobbySettings(playerId, settingsModel);
+            return await gameLobby.UpdateLobbySettings(playerId, settingsModel);
         }
+        
+        return Result.Failure(Error.InvalidState);
     }
 
-    public GameDetails GetGameDetails(string playerConnectionId, Guid playerId)
-    {
-        return _playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby) 
-            ? gameLobby.GetGameDetails(playerId)
-            : throw new InvalidOperationException("Player is not in a lobby.");
-    }
-
-    public async Task StartGame(string playerConnectionId, Guid playerId)
+    public Result<GameDetails> GetGameDetails(string playerConnectionId, Guid playerId)
     {
         if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
         {
-            await gameLobby.StartGame(playerId);
+            return gameLobby.GetGameDetails(playerId);
         }
+        
+        return Result<GameDetails>.Failure(Error.InvalidState);
     }
 
-    public MoveResult HandleMove(string playerConnectionId, Guid playerId, MoveRequestModel request)
-    {
-        return _playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby) 
-            ? gameLobby.HandleMove(playerId, request)
-            : throw new InvalidOperationException("Player is not in a lobby.");
-    }
-
-    public void HandleSwapTile(string playerConnectionId, Guid playerId, List<Guid> tileIdsToSwap)
+    public async Task<Result> StartGame(string playerConnectionId, Guid playerId)
     {
         if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
         {
-            gameLobby.HandleSwapTiles(playerId, tileIdsToSwap);
+            return await gameLobby.StartGame(playerId);
         }
+        
+        return Result.Failure(Error.InvalidState);
+    }
+
+    public Result<MoveResult> HandleMove(string playerConnectionId, Guid playerId, MoveRequestModel request)
+    {
+        if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
+        {
+            return gameLobby.HandleMove(playerId, request);
+        }
+        
+        return Result<MoveResult>.Failure(Error.InvalidState);
+    }
+
+    public Result HandleSwapTile(string playerConnectionId, Guid playerId, List<Guid> tileIdsToSwap)
+    {
+        if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
+        {
+            return gameLobby.HandleSwapTiles(playerId, tileIdsToSwap);
+        }
+        
+        return Result.Failure(Error.InvalidState);
     }
     
-    public void HandleSkipTurn(string playerConnectionId, Guid playerId)
+    public Result HandleSkipTurn(string playerConnectionId, Guid playerId)
     {
         if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
         {
-            gameLobby.HandleSkipTurn(playerId);
+            return gameLobby.HandleSkipTurn(playerId);
         }
+        
+        return Result.Failure(Error.InvalidState);
     }
 
-    public async Task AddBotToLobby(string playerConnectionId, Guid playerId, Guid seatId, BotDifficulty difficulty)
+    public async Task<Result> AddBotToLobby(string playerConnectionId, Guid playerId, Guid seatId, BotDifficulty difficulty)
     {
         if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
         {
-            await gameLobby.AddBotToLobby(playerId, seatId, difficulty);
+            return await gameLobby.AddBotToLobby(playerId, seatId, difficulty);
         }
+        
+        return Result.Failure(Error.InvalidState);
     }
 
-    public async Task RemoveBotFromLobby(string playerConnectionId, Guid playerId, Guid seatId)
+    public async Task<Result> RemoveBotFromLobby(string playerConnectionId, Guid playerId, Guid seatId)
     {
         if (_playerAssignedLobbies.TryGetValue(playerConnectionId, out var gameLobby))
         {
-            await gameLobby.RemoveBotFromLobby(playerId, seatId);
+            return await gameLobby.RemoveBotFromLobby(playerId, seatId);
         }
+        
+        return Result.Failure(Error.InvalidState);
     }
 
     private IGameLobby? GetLobbyById(Guid lobbyId)

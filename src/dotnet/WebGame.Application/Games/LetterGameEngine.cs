@@ -1,4 +1,5 @@
-﻿using WebGame.Domain.Interfaces.Bots;
+﻿using WebGame.Domain.Common;
+using WebGame.Domain.Interfaces.Bots;
 using WebGame.Domain.Interfaces.Games;
 using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.Enums;
@@ -93,7 +94,7 @@ public class LetterGameEngine : ILetterGameEngine
         NotifyStateChanged();
     }
 
-    public GameDetails GetGameDetails(Guid requestingPlayerId)
+    public Result<GameDetails> GetGameDetails(Guid requestingPlayerId)
     {
         var myHand = _playerHands
             .GetValueOrDefault(requestingPlayerId);
@@ -123,15 +124,18 @@ public class LetterGameEngine : ILetterGameEngine
         );
     }
 
-    public void SetPlayerOnline(Guid playerId, bool isOnline)
+    public Result SetPlayerOnline(Guid playerId, bool isOnline)
     {
         if (_playerHands.TryGetValue(playerId, out var hand))
         {
             hand.IsOnline = isOnline;
+            return Result.Success();
         }
+
+        return Result.Failure(Error.InvalidState);
     }
 
-    public MoveResult HandleMove(Guid playerId, MoveRequestModel request)
+    public Result<MoveResult> HandleMove(Guid playerId, MoveRequestModel request)
     {
         if (playerId != _currentTurnPlayerId)
         {
@@ -155,23 +159,23 @@ public class LetterGameEngine : ILetterGameEngine
             {
                 if (!isBlankTile)
                 {
-                    throw new InvalidOperationException("Blank tile cannot select a value.");
+                    return Result<MoveResult>.Failure(Error.InvalidArgument);
                 }
 
                 if (!_tileDefById.ContainsKey(placement.SelectedValueId.Value))
                 {
-                    throw new InvalidOperationException("SelectedValueId is not a valid tile definition");
+                    return Result<MoveResult>.Failure(Error.InvalidArgument);
                 }
 
                 if (_blankValueId != null && placement.SelectedValueId.Value == _blankValueId)
                 {
-                    throw new InvalidOperationException("Blank tile cannot select blank as its value.");
+                    return Result<MoveResult>.Failure(Error.InvalidArgument);
                 }
             }
 
             if (isBlankTile && placement.SelectedValueId == null)
             {
-                throw new InvalidOperationException("Blank tile must have SelectedValueId.");
+                return Result<MoveResult>.Failure(Error.InvalidArgument);
             }
 
             tilesToPlace.Add(tile with { SelectedValueId = placement.SelectedValueId });
@@ -185,11 +189,11 @@ public class LetterGameEngine : ILetterGameEngine
         return ExecuteMove(playerId, request.Placements, tilesToPlace);
     }
 
-    public void HandleSkipTurn(Guid playerId)
+    public Result HandleSkipTurn(Guid playerId)
     {
         if (playerId != _currentTurnPlayerId)
         {
-            throw new InvalidOperationException("Not your turn!");
+            return Result.Failure(Error.InvalidState);
         }
         
         HandleScorelessTurn();
@@ -199,24 +203,26 @@ public class LetterGameEngine : ILetterGameEngine
         SubtractTime(playerId, currentTurnStartedAt, false);
         NotifyStateChanged();
         HandleBotTurns();
+        
+        return Result.Success();
     }
     
 
-    public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
+    public Result HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
     {
         if (playerId != _currentTurnPlayerId)
         {
-            throw new InvalidOperationException("Not your turn!");
+            return Result.Failure(Error.InvalidState);
         }
 
-        if (tileIdsToSwap == null || !tileIdsToSwap.Any())
+        if (tileIdsToSwap.Count == 0)
         {
-            throw new InvalidOperationException("No tiles to swap.");
+            return Result.Failure(Error.InvalidArgument);
         }
 
         if (_tileBag.Count < 7)
         {
-            throw new InvalidOperationException("Not enough tiles in bag to swap.");
+            return Result.Failure(Error.InvalidState);
         }
 
         var playerHand = _playerHands[playerId];
@@ -227,7 +233,7 @@ public class LetterGameEngine : ILetterGameEngine
             var tile = playerHand.Tiles.FirstOrDefault(t => t.TileId == tileId);
             if (tile == null)
             {
-                throw new InvalidOperationException($"Tile with id {tileId} not found in player's hand.");
+                return Result.Failure(Error.InvalidArgument);
             }
             tilesToReturn.Add(tile);
         }
@@ -254,9 +260,11 @@ public class LetterGameEngine : ILetterGameEngine
         SubtractTime(playerId, currentTurnStartedAt, false);
         NotifyStateChanged();
         HandleBotTurns();
+        
+        return Result.Success();
     }
 
-    public void CheckGameRules()
+    public Result CheckGameRules()
     {
         var currentTurnPlayerHand = _playerHands[_currentTurnPlayerId];
         var timeElapsed = DateTimeOffset.UtcNow - _currentTurnStartedAt;
@@ -280,6 +288,8 @@ public class LetterGameEngine : ILetterGameEngine
         {
             FinishGame();
         }
+        
+        return Result.Success();
     }
 
     private MoveResult ExecuteMove(Guid playerId, List<TilePlacementModel> placements, List<TileInstanceDetails> tiles)
@@ -475,7 +485,19 @@ public class LetterGameEngine : ILetterGameEngine
             {
                 try
                 {
-                    await HandleBotMoveAsync(currentTurnPlayer.PlayerId);
+                    var result = await HandleBotMoveAsync(currentTurnPlayer.PlayerId);
+                    if (result.IsFailure)
+                    {
+                        lock (_lock)
+                        {
+                            if (_currentTurnPlayerId == currentTurnPlayer.PlayerId)
+                            {
+                                SubtractTime(currentTurnPlayer.PlayerId, _currentTurnStartedAt, false);
+                                RotateTurn();
+                                NotifyStateChanged();
+                            }
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -500,13 +522,14 @@ public class LetterGameEngine : ILetterGameEngine
             });
         }
     }
+    
 
-    private async Task HandleBotMoveAsync(Guid playerBotId)
+    private async Task<Result> HandleBotMoveAsync(Guid playerBotId)
     {
         var botPlayer = _gamePlayers.First(p => p.PlayerId == playerBotId);
         if (!botPlayer.IsBot)
         {
-            throw new InvalidOperationException("Player is not a bot.");
+            return Result.Failure(Error.InvalidState);
         }
         
         var botHand = _playerHands[playerBotId];
@@ -515,7 +538,7 @@ public class LetterGameEngine : ILetterGameEngine
         var strategy = _botStrategies.FirstOrDefault(s => s.Difficulty == botDifficulty);
         if (strategy == null)
         {
-            throw new InvalidOperationException($"No strategy found for difficulty {botDifficulty}");
+            return Result.Failure(Error.InvalidState);
         }
         
         var botHandDetails = new PlayerHandDetails(
@@ -526,7 +549,10 @@ public class LetterGameEngine : ILetterGameEngine
 
         lock (_lock)
         {
-            if (_currentTurnPlayerId != playerBotId) return;
+            if (_currentTurnPlayerId != playerBotId)
+            {
+                return Result.Failure(Error.InvalidState);
+            }
 
             switch (action)
             {
@@ -541,6 +567,8 @@ public class LetterGameEngine : ILetterGameEngine
                     break;
             }
         }
+        
+        return Result.Success();
     }
 
     private void SubtractTime(Guid playerId, DateTimeOffset lastTurnStartTime, bool playerMoved)

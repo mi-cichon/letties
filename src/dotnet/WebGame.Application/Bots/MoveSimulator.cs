@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using WebGame.Domain.Interfaces.Bots;
+﻿using WebGame.Domain.Interfaces.Bots;
 using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.Enums;
 using WebGame.Domain.Interfaces.Languages;

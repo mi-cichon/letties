@@ -20,6 +20,7 @@ import { Subject } from 'rxjs';
 export class GameHubService implements OnDestroy {
   private hubConnection!: HubConnection;
   private ngZone = inject(NgZone);
+  private isRetrying = false;
 
   private _connectionEstablished = signal(false);
   public connectionEstablished = this._connectionEstablished.asReadonly();
@@ -31,6 +32,10 @@ export class GameHubService implements OnDestroy {
   public gameState: WritableSignal<GameDetails | null> = signal(null);
 
   public async initGameConnection(): Promise<boolean> {
+    if (this.hubConnection && this.hubConnection.state !== HubConnectionState.Disconnected) {
+      return true;
+    }
+
     this.hubConnection = new HubConnectionBuilder()
       .withUrl(getGameHubUrl(), {
         accessTokenFactory: () => {
@@ -51,6 +56,7 @@ export class GameHubService implements OnDestroy {
     } catch (err) {
       console.error('Error connecting to Game Hub:', err);
       this._connectionEstablished.set(false);
+      this.retryConnection();
       return false;
     }
   }
@@ -84,9 +90,15 @@ export class GameHubService implements OnDestroy {
     this.hubConnection.onreconnected(() => {
       this.ngZone.run(() => {
         console.log('SignalR reconnected');
-        if (this.gameState()) {
-          this.getGameDetails();
-        }
+        this.refreshFullState();
+      });
+    });
+
+    this.hubConnection.onclose(() => {
+      this.ngZone.run(() => {
+        console.log('SignalR connection closed');
+        this._connectionEstablished.set(false);
+        this.retryConnection();
       });
     });
   }
@@ -94,12 +106,9 @@ export class GameHubService implements OnDestroy {
   private handlePageVisibility() {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        if (this.hubConnection.state === HubConnectionState.Disconnected) {
-          this.hubConnection
-            .start()
-            .then(() => this.refreshFullState())
-            .catch((err) => console.error('Reconnection failed', err));
-        } else {
+        if (this.hubConnection.state === HubConnectionState.Disconnected && !this.isRetrying) {
+          this.retryConnection();
+        } else if (this.hubConnection.state === HubConnectionState.Connected) {
           this.refreshFullState();
         }
       }
@@ -107,8 +116,31 @@ export class GameHubService implements OnDestroy {
   }
 
   private refreshFullState() {
-    this.getLobbyDetails();
-    this.getGameDetails();
+    if (this.hubConnection.state === HubConnectionState.Connected) {
+      this.getLobbyDetails();
+      this.getGameDetails();
+    }
+  }
+
+  private async retryConnection(): Promise<void> {
+    if (this.isRetrying || this.hubConnection.state !== HubConnectionState.Disconnected) {
+      return;
+    }
+
+    this.isRetrying = true;
+    console.log('Retrying connection...');
+
+    try {
+      await this.hubConnection.start();
+      console.log('Game Hub connected (reconnect)');
+      this._connectionEstablished.set(true);
+      this.isRetrying = false;
+      this.refreshFullState();
+    } catch (err) {
+      console.error('Retry connection failed', err);
+      this.isRetrying = false;
+      setTimeout(() => this.retryConnection(), 5000);
+    }
   }
 
   public getLobbies(): Promise<GameLobbyItem[]> {

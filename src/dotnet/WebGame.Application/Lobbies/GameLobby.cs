@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using WebGame.Application.Constants;
+using WebGame.Domain.Common;
 using WebGame.Domain.Interfaces;
 using WebGame.Domain.Interfaces.Bots;
 using WebGame.Domain.Interfaces.Games;
@@ -63,7 +64,7 @@ public class GameLobby : IGameLobby
     
     private static readonly (int Min, int Max) SettingsTimeBankRange = (3, 60);
     
-    public async Task<LobbyStateDetails> AssignPlayer(Guid playerId, string playerConnectionId, string playerName)
+    public async Task<Result<JoinDetails>> AssignPlayer(Guid playerId, string playerConnectionId, string playerName)
     {
         var lobbyPlayer = new LobbyPlayer(playerId, playerConnectionId, playerName, false, null);
         _players.TryAdd(playerId, lobbyPlayer);
@@ -88,10 +89,10 @@ public class GameLobby : IGameLobby
             GameEngine.SetPlayerOnline(playerId, true);
         }
         
-        return currentState;
+        return new JoinDetails(playerId, currentState);
     }
 
-    public LobbyStateDetails GetLobbyState()
+    public Result<LobbyStateDetails> GetLobbyState()
     {
         var playerDetails = _players.Values.ToArray()
             .Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName, x.IsBot, x.BotDifficulty))
@@ -104,7 +105,7 @@ public class GameLobby : IGameLobby
         return new LobbyStateDetails(LobbyId, playerDetails, seatDetails, _lobbySettings, State, GameFinishedDetails);
     }
 
-    public async Task LeaveLobby(Guid playerId)
+    public async Task<Result> LeaveLobby(Guid playerId)
     {
         await _gameContextService.RemoveFromGroup(_players[playerId].PlayerConnectionId, LobbyGroupName);
         
@@ -130,19 +131,20 @@ public class GameLobby : IGameLobby
         }
         
         await UpdateGroupWithLobbyState();
+        return Result.Success();
     }
 
-    public async Task SendMessage(string playerName, string message)
+    public async Task<Result> SendMessage(string playerName, string message)
     {
-        await _gameContextService.SendChatMessageToGroup(LobbyGroupName, playerName, message);
+        return await _gameContextService.SendChatMessageToGroup(LobbyGroupName, playerName, message);
     }
 
-    public async Task<bool> JoinSeat(Guid playerId, Guid seatId)
+    public async Task<Result> JoinSeat(Guid playerId, Guid seatId)
     {
         var seat = _seats.GetValueOrDefault(seatId);
         if (seat == null || seat.PlayerId != null)
         {
-            return false;
+            return Result.Failure(Error.InvalidState);
         }
         
         var currentSeat = _seats
@@ -156,30 +158,31 @@ public class GameLobby : IGameLobby
         
         seat.PlayerId = playerId;
         await UpdateGroupWithLobbyState();
-        return true;
+        return Result.Success();
     }
 
-    public async Task PlayerDisconnected(string connectionId)
+    public async Task<Result> PlayerDisconnected(string connectionId)
     {
         var playerId = _players.SingleOrDefault(x => x.Value.PlayerConnectionId == connectionId).Key;
         
-        await LeaveLobby(playerId);
+        return await LeaveLobby(playerId);
     }
     
-    public async Task LeaveSeat(Guid playerId)
+    public async Task<Result> LeaveSeat(Guid playerId)
     {
         var seat = _seats.Select(x => new {SeatId = x.Key, Seat = x.Value}).FirstOrDefault(x => x.Seat.PlayerId == playerId);
 
         if (seat == null)
         {
-            return;
+            return Result.Failure(Error.InvalidState);
         }
         
         seat.Seat.PlayerId = null;
         await UpdateGroupWithLobbyState();
+        return Result.Success();
     }
 
-    public bool IsPlayerInLobby(Guid playerId)
+    public Result<bool> IsPlayerInLobby(Guid playerId)
     {
         var seat = _seats
             .Select(x => new { Seat = x.Value })
@@ -188,43 +191,44 @@ public class GameLobby : IGameLobby
         return seat != null || _players.ContainsKey(playerId);
     }
 
-    public async Task UpdateLobbySettings(Guid playerId, LobbySettingsModel settingsModel)
+    public async Task<Result> UpdateLobbySettings(Guid playerId, LobbySettingsModel settingsModel)
     {
         if (!IsPlayerLobbyAdmin(playerId))
         {
-            throw new InvalidOperationException("Only lobby admins can update lobby settings.");
+            return Result.Failure(Error.InvalidState);
         }
 
         if (State != GameLobbyState.Lobby)
         {
-            throw new InvalidOperationException("Lobby settings can only be updated while lobby is in lobby state.");
+            return Result.Failure(Error.InvalidState);
         }
         
         if (!ValidateLobbySettings(settingsModel))
         {
-            throw new InvalidOperationException("Invalid lobby settings.");
+            return Result.Failure(Error.InvalidArgument);
         }
         
         _lobbySettings = new LobbySettings(settingsModel.TimeBank, settingsModel.Language, settingsModel.TilesCount, settingsModel.BoardType);
         await UpdateGroupWithLobbyState();
+        return Result.Success();
     }
 
-    public async Task AddBotToLobby(Guid addingPlayerId, Guid seatId, BotDifficulty difficulty)
+    public async Task<Result> AddBotToLobby(Guid addingPlayerId, Guid seatId, BotDifficulty difficulty)
     {
         if (!IsPlayerLobbyAdmin(addingPlayerId))
         {
-            throw new InvalidOperationException("Only lobby admins can add bots to lobby.");
+            return Result.Failure(Error.InvalidState);
         }
 
         if (State != GameLobbyState.Lobby)
         {
-            throw new InvalidOperationException("Bots can only be added while lobby is in lobby state.");
+            return Result.Failure(Error.InvalidState);
         }
         
         var seat = _seats.GetValueOrDefault(seatId);
         if (seat == null || seat.PlayerId != null || seat.IsAdmin)
         {
-            throw new InvalidOperationException("Only non-admin seats can be assigned to bot players.");
+            return Result.Failure(Error.InvalidState);
         }
         var botName = _randomNameService.GetRandomBotName(_lobbySettings.Language);
         var botPlayer = new LobbyPlayer(Guid.CreateVersion7(), string.Empty, $"Bot {botName}", true, difficulty);
@@ -234,24 +238,25 @@ public class GameLobby : IGameLobby
         
         _players.TryAdd(botPlayer.PlayerId, botPlayer);
         await UpdateGroupWithLobbyState();
+        return Result.Success();
     }
 
-    public async Task RemoveBotFromLobby(Guid removingPlayerId, Guid seatId)
+    public async Task<Result> RemoveBotFromLobby(Guid removingPlayerId, Guid seatId)
     {
         if (!IsPlayerLobbyAdmin(removingPlayerId))
         {
-            throw new InvalidOperationException("Only lobby admins can remove bots from lobby.");
+            return Result.Failure(Error.InvalidState);
         }
 
         if (State != GameLobbyState.Lobby)
         {
-            throw new InvalidOperationException("Bots can only be removed while lobby is in lobby state.");
+            return Result.Failure(Error.InvalidState);
         }
         
         var seat = _seats.GetValueOrDefault(seatId);
         if (seat == null || seat.PlayerId == null || !seat.IsBot)
         {
-            throw new InvalidOperationException("Only bot seats can be removed.");
+            return Result.Failure(Error.InvalidState);
         }
         
         var botId = seat.PlayerId.Value;
@@ -263,6 +268,7 @@ public class GameLobby : IGameLobby
         _players.TryRemove(botId, out _);
         
         await UpdateGroupWithLobbyState();
+        return Result.Success();
     }
     
 
@@ -285,21 +291,21 @@ public class GameLobby : IGameLobby
     
     #region Game State
 
-    public async Task StartGame(Guid playerId)
+    public async Task<Result> StartGame(Guid playerId)
     {
         if (!IsPlayerLobbyAdmin(playerId))
         {
-            throw new InvalidOperationException("Only lobby admins can start the game.");
+            return Result.Failure(Error.InvalidState);
         }
         
         if (State != GameLobbyState.Lobby)
         {
-            throw new InvalidOperationException("Game can only be started while lobby is in lobby state.");
+            return Result.Failure(Error.InvalidState);
         }
 
         if (_seats.Count(x => x.Value.PlayerId != null) < 2)
         {
-            throw new InvalidOperationException("Not enough players to start the game.");
+            return Result.Failure(Error.InvalidState);
         }
         
         State = GameLobbyState.Game;
@@ -314,9 +320,11 @@ public class GameLobby : IGameLobby
         
         await UpdateGroupWithLobbyState();
         await UpdateGroupWithGameState();
+        
+        return Result.Success();
     }
 
-    public MoveResult HandleMove(Guid playerId, MoveRequestModel moveRequest)
+    public Result<MoveResult> HandleMove(Guid playerId, MoveRequestModel moveRequest)
     {
         lock (_sync)
         {
@@ -329,53 +337,59 @@ public class GameLobby : IGameLobby
         }
     }
 
-    public GameDetails GetGameDetails(Guid playerId)
+    public Result<GameDetails> GetGameDetails(Guid playerId)
     {
         if (State != GameLobbyState.Game || GameEngine == null)
         {
-            throw new InvalidOperationException("Game details can only be retrieved while game is in progress.");
+            return Result<GameDetails>.Failure(Error.InvalidState);
         }
 
         return GameEngine.GetGameDetails(playerId);
     }
 
-    public void HandleSkipTurn(Guid playerId)
+    public Result HandleSkipTurn(Guid playerId)
     {
         lock (_sync)
         {
             if (State != GameLobbyState.Game || GameEngine == null)
             {
-                throw new InvalidOperationException("Game details can only be retrieved while game is in progress.");
+                return Result.Failure(Error.InvalidState);
             }
 
             GameEngine.HandleSkipTurn(playerId);
         }
+        
+        return Result.Success();
     }
 
-    public void HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
+    public Result HandleSwapTiles(Guid playerId, List<Guid> tileIdsToSwap)
     {
         lock (_sync)
         {
             if (State != GameLobbyState.Game || GameEngine == null)
             {
-                throw new InvalidOperationException("Game details can only be retrieved while game is in progress.");
+                return Result.Failure(Error.InvalidState);
             }
 
             GameEngine.HandleSwapTiles(playerId, tileIdsToSwap);
         }
+        
+        return Result.Success();
     }
 
-    public void CheckGameRules()
+    public Result CheckGameRules()
     {
         lock (_sync)
         {
             if (State != GameLobbyState.Game || GameEngine == null)
             {
-                return;
+                return Result.Failure(Error.InvalidState);
             }
 
             GameEngine.CheckGameRules();
         }
+        
+        return Result.Success();
     }
     
     #endregion

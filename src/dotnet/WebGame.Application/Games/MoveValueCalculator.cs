@@ -1,5 +1,4 @@
-﻿using WebGame.Domain.Interfaces.Games;
-using WebGame.Domain.Interfaces.Games.Details;
+﻿using WebGame.Domain.Interfaces.Games.Details;
 using WebGame.Domain.Interfaces.Games.Enums;
 using WebGame.Domain.Interfaces.Games.MoveCalculations;
 using WebGame.Domain.Interfaces.Languages;
