@@ -51,6 +51,9 @@
             <div class="history-item">
               <div class="move-player">
                 <span class="player-name">{{ move.playerName }}</span>
+                @if (move.moveTime) {
+                  <span class="move-time">{{ move.moveTime.split('.')[0] }}</span>
+                }
               </div>
               <div class="move-content">
                 <div class="word-list">
@@ -60,6 +63,13 @@
                     <span class="skipped-tag">{{ 'postGame.skipped' | transloco }}</span>
                   }
                 </div>
+                @if (move.bestMove && move.bestMove.points! > (move.gainedPoints || 0)) {
+                  <div class="best-move-hint">
+                    <span class="hint-label">Best:</span>
+                    <span class="hint-words">{{ move.bestMove.word?.join(', ') }}</span>
+                    <span class="hint-pts">(+{{ move.bestMove.points }} pts)</span>
+                  </div>
+                }
               </div>
               <div class="move-points">
                 <span class="points-val">+{{ move.gainedPoints }}</span>

@@ -346,8 +346,6 @@ public class LetterGameEngine : ILetterGameEngine
         }
         
         var wordScanResult = _moveValueCalculator.ScanForWords(_boardLayout, _tileDefById, _placedTiles, proposedMoves);
-        
-        CalculateHistoricalScore(playerId, wordScanResult);
 
         if (wordScanResult.FormedWords.Count == 0)
         {
@@ -363,6 +361,8 @@ public class LetterGameEngine : ILetterGameEngine
                 return new MoveResult(false, MoveErrors.InvalidWord, $"Word '{word.Text}' is not valid!");
             }
         }
+        
+        CalculateHistoricalScore(playerId, wordScanResult);
 
         foreach (var move in proposedMoves)
         {
