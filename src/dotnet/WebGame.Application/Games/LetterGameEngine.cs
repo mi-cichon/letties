@@ -414,18 +414,18 @@ public class LetterGameEngine : ILetterGameEngine
         var playerScoreSnapshot = _playerScores[playerId];
         var moveTime = DateTimeOffset.UtcNow;
         
-        var allPossibleMoves = _moveSimulator.SimulateMoves(
-            _initialSettings.Language,
-            7,
-            boardLayoutSnapshot,
-            placedTilesSnapshot,
-            playerHandSnapshot
-        );
-
         Task.Run(() =>
         {
             var start = Stopwatch.GetTimestamp();
             MoveCalculationResult? bestMove = null;
+            
+            var allPossibleMoves = _moveSimulator.SimulateMoves(
+                _initialSettings.Language,
+                7,
+                boardLayoutSnapshot,
+                placedTilesSnapshot,
+                playerHandSnapshot
+            );
 
             foreach (var possibleMove in allPossibleMoves)
             {
