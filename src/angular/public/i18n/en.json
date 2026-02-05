@@ -102,7 +102,7 @@
     "swap": "Swap",
     "reset": "Reset",
     "play": "Play",
-    "skip": "Skip turn",
+    "skip": "Pass",
     "notification": {
       "turnTitle": "Your turn!",
       "turnBody": "It's time to make your move."

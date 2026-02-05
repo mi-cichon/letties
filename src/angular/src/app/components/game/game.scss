@@ -281,50 +281,83 @@
   }
 
   button {
-    padding: 12px;
-    border-radius: 6px;
-    border: none;
+    padding: 8px 14px; // Zmniejszone z 12px 20px
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
     cursor: pointer;
-    font-weight: bold;
-    color: white;
-    font-size: 0.95rem;
-    transition: transform 0.1s;
+    font-weight: 700;
+    color: #ecf0f1;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 
-    &:active {
-      transform: scale(0.95);
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
     }
+
+    &:active:not(:disabled) {
+      transform: translateY(0) scale(0.96);
+    }
+
     &:disabled {
-      opacity: 0.5;
+      opacity: 0.3;
       cursor: not-allowed;
+      filter: grayscale(1);
     }
 
     &.btn-submit {
-      background: #27ae60;
-      &:hover {
-        background: #2ecc71;
+      background: #f1c40f;
+      color: #0f1113;
+      border-color: #f1c40f;
+      box-shadow: 0 4px 20px rgba(241, 196, 15, 0.2);
+
+      &:hover:not(:disabled) {
+        background: #f39c12;
+        box-shadow: 0 6px 25px rgba(241, 196, 15, 0.4);
       }
     }
+
     &.btn-reset {
-      background: #7f8c8d;
-      &:hover {
-        background: #95a5a6;
-      }
+      color: #bdc3c7;
+      border-color: rgba(189, 195, 199, 0.3);
     }
+
     &.btn-skip {
-      background: #c0392b;
-      &:hover {
-        background: #e74c3c;
+      color: #e74c3c;
+      border-color: rgba(231, 76, 60, 0.3);
+      &:hover:not(:disabled) {
+        background: rgba(231, 76, 60, 0.1);
       }
     }
+
     &.btn-swap {
-      background: #0054d3;
-      &:hover {
-        background: #4d22e6;
+      color: #3498db;
+      border-color: rgba(52, 152, 219, 0.3);
+      &.active {
+        background: #3498db;
+        color: white;
+      }
+      &:hover:not(:disabled) {
+        background: rgba(52, 152, 219, 0.1);
       }
     }
+
     &.btn-confirm {
-      background: #f39c12;
-      animation: pulse 1s infinite;
+      background: #e67e22; // Pomarańczowy zamiast złotego
+      color: #fff;
+      border-color: #e67e22;
+      box-shadow: 0 4px 20px rgba(230, 126, 34, 0.2);
+      animation: pulse 1.5s infinite;
+
+      &:hover:not(:disabled) {
+        background: #d35400;
+        box-shadow: 0 6px 25px rgba(230, 126, 34, 0.4);
+      }
     }
   }
 }
@@ -460,34 +493,33 @@
   z-index: 2;
   cursor: grab;
   position: relative;
+  container-type: size; // Pozwala na skalowanie treści względem wielkości kafelka
 
-  // SKALOWANIE CZCIONKI:
-  // (Szerokość planszy / l.kolumn * współczynnik)
   .letter {
-    font-size: calc(100cqmin / var(--grid-size) * 0.4);
-    font-weight: 800;
+    font-size: 54cqmin; // Zmniejszone z 58, aby zrobić miejsce
+    font-weight: 700;
     color: #3e2723;
     line-height: 1;
-    margin-top: -5%; // Lekka korekta optyczna
+    display: block;
   }
 
   .points {
     position: absolute;
-    bottom: 4%;
-    right: 10%;
-    font-size: calc(100cqmin / var(--grid-size) * 0.28);
-    font-weight: 700;
+    bottom: 4cqmin;
+    right: 4cqmin;
+    font-size: 36cqmin; // Zwiększone z 30
+    font-weight: 700; // Pogrubione dla czytelności
     color: #3e2723;
+    line-height: 1;
   }
 
   .blank-indicator {
     position: absolute;
-    bottom: 4%;
-    left: 10%;
-    font-size: calc(100cqmin / var(--grid-cols) * 0.25);
+    bottom: 4cqmin;
+    left: 4cqmin;
+    font-size: 28cqmin; 
     color: #3e2723;
     font-weight: 700;
-
     opacity: 1;
   }
 
@@ -511,34 +543,30 @@
     cursor: not-allowed;
   }
   &.selected-for-swap {
-    transform: translateY(-5px);
-    border: 2px solid #e74c3c;
+    transform: translateY(-8px);
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    border: 2px solid #ff7675;
+    box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
+
+    .letter,
+    .points {
+      color: white;
+    }
   }
 
-  // --- KAFELEK W RĘCE (NIE SKALOWALNY PRZEZ CQMIN) ---
+  // --- KAFELEK W RĘCE ---
   &.in-hand {
     width: 4vmin;
     height: 4vmin;
     flex-shrink: 0;
-    .letter {
-      font-size: 1.2rem;
-      margin-top: -2px;
-    }
-    .points {
-      font-size: 0.6rem;
-      bottom: 3px;
-      right: 4px;
-    }
+
+    // Ponieważ dodaliśmy container-type: size do .tile, 
+    // wewnętrzne style .letter i .points zadziałają automatycznie 
+    // i przeskalują się do tych 4vmin!
 
     @media (max-width: 600px) {
       width: 38px;
       height: 38px;
-      .letter {
-        font-size: 1.2rem;
-      }
-      .points {
-        font-size: 0.6rem;
-      }
     }
   }
 }
