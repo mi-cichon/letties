@@ -28,7 +28,12 @@ export class LoginHubService {
   private isRetrying = false;
 
   public initLoginConnection(): Promise<boolean> {
-    if (this.hubConnection && (this.hubConnection.state === HubConnectionState.Connected || this.hubConnection.state === HubConnectionState.Connecting || this.hubConnection.state === HubConnectionState.Reconnecting)) {
+    if (
+      this.hubConnection &&
+      (this.hubConnection.state === HubConnectionState.Connected ||
+        this.hubConnection.state === HubConnectionState.Connecting ||
+        this.hubConnection.state === HubConnectionState.Reconnecting)
+    ) {
       return Promise.resolve(true);
     }
 
@@ -78,14 +83,14 @@ export class LoginHubService {
     if (
       this.isRetrying ||
       !this.hubConnection ||
-      (this.hubConnection.state !== HubConnectionState.Disconnected)
+      this.hubConnection.state !== HubConnectionState.Disconnected
     ) {
       return;
     }
 
     this.isRetrying = true;
     console.log('Retrying Login Hub connection in 5s...');
-    
+
     setTimeout(async () => {
       try {
         if (this.hubConnection && this.hubConnection.state === HubConnectionState.Disconnected) {
@@ -159,9 +164,6 @@ export class LoginHubService {
     localStorage.removeItem(environment.jwtStorageKey);
     localStorage.removeItem(environment.nicknameStorageKey);
     this._loggedIn.set(false);
-    if (this.hubConnection) {
-      this.hubConnection.stop();
-    }
     this.router.navigate(['/login']);
   }
 }
