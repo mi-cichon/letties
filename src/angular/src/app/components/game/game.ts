@@ -18,7 +18,7 @@ import {
 } from '../../api';
 import { GameHubService } from '../../services/game-hub-service';
 import { LoadingSpinnerComponent } from '../../common/loading-spinner/loading-spinner';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { PlayerNamePipe } from './pipes/player-name-pipe';
 import { CellLabelPipe } from './pipes/cell-label-pipe';
 import { getPlayerId } from '../../core/utils/token-utils';
@@ -62,6 +62,7 @@ export class Game implements OnDestroy {
   myId = signal(getPlayerId());
 
   private gameHubService = inject(GameHubService);
+  private translocoService = inject(TranslocoService);
   private turnNotificationSound = new Audio('/assets/sounds/turn-start.mp3');
   private lastNotifiedTurnStartedAt = '';
 
@@ -165,6 +166,7 @@ export class Game implements OnDestroy {
       if (state?.currentTurnPlayerId === myId && turnStart !== this.lastNotifiedTurnStartedAt) {
         this.lastNotifiedTurnStartedAt = turnStart;
         this.playTurnSound();
+        this.showTurnNotification();
       }
     });
   }
@@ -177,6 +179,18 @@ export class Game implements OnDestroy {
     } catch (e) {}
   }
 
+  private showTurnNotification() {
+    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+      const title = this.translocoService.translate('lobby.notification.turnTitle');
+      const body = this.translocoService.translate('lobby.notification.turnBody');
+
+      new Notification(title, {
+        body: body,
+        icon: '/assets/icon.svg',
+      });
+    }
+  }
+
   getTileValueIdFromHand(tileId: string | null): string | undefined {
     if (!tileId) return undefined;
     return this.gameState()?.myHand?.tiles?.find((t) => t.tileId === tileId)?.valueId;
@@ -184,6 +198,13 @@ export class Game implements OnDestroy {
 
   async ngOnInit() {
     await this.gameHubService.getGameDetails();
+    this.requestNotificationPermission();
+  }
+
+  private requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   }
 
   onTileSelect(tileId: string) {

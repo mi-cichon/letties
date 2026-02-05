@@ -307,13 +307,13 @@
 
 @media (max-width: 600px) {
   .leaderboard-card .player-row {
-    padding: 0.8rem 1rem;
-    grid-template-columns: 40px 1fr 80px;
+    padding: 0.8rem 1rem !important;
+    grid-template-columns: 40px 1fr 80px !important;
   }
   .history-card .history-item,
   .history-card .history-header {
-    padding: 0.8rem 1rem;
-    grid-template-columns: 80px 1fr 60px;
+    padding: 0.8rem 1rem !important;
+    grid-template-columns: 80px 1fr 60px !important;
   }
   .history-card {
     max-height: 500px;

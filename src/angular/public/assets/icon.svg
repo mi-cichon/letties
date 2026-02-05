@@ -1,0 +1,37 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient zgodny z Twoim CSS: linear-gradient(135deg, #ebdcb2 0%, #cfa966 100%) -->
+    <linearGradient id="tileGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ebdcb2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#cfa966;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Delikatny cień wewnętrzny/zewnętrzny dla głębi -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="5" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Kształt kafelka z zaokrąglonymi rogami -->
+  <rect x="30" y="30" width="452" height="452" rx="60" ry="60" 
+        fill="url(#tileGradient)" 
+        filter="url(#dropShadow)" />
+
+  <!-- Główna litera L -->
+  <!-- Używam font-family podobnego do systemowego, waga 800 (bold), kolor #3e2723 -->
+  <text x="50%" y="58%" 
+        font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" 
+        font-weight="800" 
+        font-size="320" 
+        fill="#3e2723" 
+        text-anchor="middle" 
+        dominant-baseline="middle">L</text>
+
+  <!-- Punkty (dla L zazwyczaj 2 w PL, 1 w EN - dam 1 jako uniwersalne/startowe) -->
+  <text x="410" y="420" 
+        font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" 
+        font-weight="700" 
+        font-size="90" 
+        fill="#3e2723" 
+        text-anchor="end">1</text>
+</svg>

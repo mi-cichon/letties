@@ -17,6 +17,7 @@
   container-type: size;
   color: white;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  touch-action: none;
 
   // Mobile / Tablet Vertical
   @media (max-width: 900px) {
@@ -154,8 +155,21 @@
         font-size: 0.9rem;
       }
       .remaining-time {
-        display: none;
-      } // Czas zajmuje dużo miejsca, można ukryć lub zostawić
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.85rem;
+        font-family: monospace;
+        color: #f1c40f;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 2px 6px;
+        border-radius: 4px;
+
+        &::before {
+          content: '🕒';
+          font-size: 0.75rem;
+        }
+      }
 
       &.active {
         border-left: none; // Reset
