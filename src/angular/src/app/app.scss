@@ -32,7 +32,7 @@
     button {
       background: none;
       border: none;
-      color: #666; // Przygaszony nieaktywny
+      color: #666;
       cursor: pointer;
       padding: 2px 4px;
       transition: all 0.3s ease;
@@ -43,7 +43,7 @@
       }
 
       &.active {
-        color: #e2c08d; // Twój złoty kolor
+        color: #e2c08d;
         text-shadow: 0 0 8px rgba(226, 192, 141, 0.4);
       }
     }
@@ -56,10 +56,10 @@
 }
 
 .main-wrap {
-  flex: 1; // Zajmij całą POZOSTAŁĄ przestrzeń pod headerem
-  overflow: hidden; // Jeśli dziecko jest za duże, utnij je (dziecko samo sobie zrobi scrolla)
+  flex: 1;
+  overflow: hidden;
   position: relative;
-  display: flex; // Przekaż layout niżej
+  display: flex;
   flex-direction: column;
 }
 

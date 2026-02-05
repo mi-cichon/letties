@@ -49,11 +49,10 @@
   width: 100%;
   border-collapse: collapse;
 
-  // Żeby nagłówek nie uciekał przy przewijaniu:
   thead {
     position: sticky;
     top: 0;
-    background-color: #1a1a1a; // Dopasuj do tła aplikacji
+    background-color: #1a1a1a;
     z-index: 10;
   }
 }
@@ -186,8 +185,6 @@
 }
 
 @media (max-width: 500px) {
-  // Na telefonie ukrywamy status, żeby zmieścić przycisk 'Dołącz'
-  // lub zmniejszamy fonty
   .lobby-table {
     th,
     td {

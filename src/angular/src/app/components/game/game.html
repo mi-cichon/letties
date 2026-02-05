@@ -175,7 +175,6 @@
                   (cdkDragStarted)="draggingTileId.set(tile.tileId); draggingTileIndex.set($index); isDragOverRack.set(true)"
                   (cdkDragEnded)="draggingTileId.set(null); draggingTileIndex.set(null); isDragOverRack.set(false)"
                 >
-                  <!-- WŁAŚCIWY KAFELEK (Wizualizacja) -->
                   <div
                     class="tile in-hand"
                     [class.is-used]="isUsed"
@@ -186,7 +185,6 @@
                     <span class="points">{{ def?.basePoints }}</span>
                   </div>
 
-                  <!-- PLACEHOLDER CDK: Duch do sortowania (widoczny tylko wewnątrz racka) -->
                   <div *cdkDragPlaceholder class="tile in-hand is-used">
                     <span class="letter">{{ def?.valueText }}</span>
                     <span class="points">{{ def?.basePoints }}</span>
@@ -194,7 +192,6 @@
                 </div>
               }
 
-              <!-- PERMANENTNY DUCH: Pokazuje się, gdy wyjedziesz poza rack -->
               @if (draggingTileId(); as dragId) {
                 @if (!isDragOverRack()) {
                   @let def = tileDefsMap().get(getTileValueIdFromHand(dragId)!);

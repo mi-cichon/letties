@@ -1,4 +1,3 @@
-// Główny kontener - Layout strony
 .lobby-container {
   display: flex;
   flex-direction: column;
@@ -8,7 +7,6 @@
   width: 100%;
   height: auto;
 
-  // --- DESKTOP (od 1024px) ---
   @media (min-width: 1024px) {
     flex-direction: row;
 
@@ -20,19 +18,17 @@
   }
 }
 
-// --- LEWA KOLUMNA (Miejsca + Widzowie) ---
 .main-area {
   width: 100%;
 
   display: flex;
   flex-direction: column;
-  gap: 2rem; // Odstęp między siatką miejsc a widzami
+  gap: 2rem;
 
   @media (min-width: 1024px) {
-    overflow-y: auto; // Scrolluje się niezależnie od ustawień
+    overflow-y: auto;
     padding-right: 0.5rem;
 
-    // Custom Scrollbar
     &::-webkit-scrollbar {
       width: 6px;
     }
@@ -46,16 +42,15 @@
   }
 }
 
-// --- PRAWA KOLUMNA (Tylko Ustawienia) ---
 .side-panel {
   display: flex;
   flex-direction: column;
 
   @media (min-width: 1024px) {
-    width: 360px; // Stała szerokość
+    width: 360px;
     min-width: 360px;
     height: 100%;
-    overflow-y: auto; // Niezależny scroll ustawień
+    overflow-y: auto;
     padding-right: 0.5rem;
 
     &::-webkit-scrollbar {
@@ -67,8 +62,6 @@
     }
   }
 }
-
-// --- KOMPONENTY ---
 
 .seats-grid {
   display: grid;
@@ -153,13 +146,12 @@
   }
 }
 
-// Sekcja widzów (Teraz pod gridem, wewnątrz main-area)
 .spectators-section {
   padding: 1.5rem;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid #2a2a2a;
   border-radius: 8px;
-  margin-bottom: 1rem; // Margines od dołu, żeby nie przyklejało się do krawędzi
+  margin-bottom: 1rem;
 
   h3 {
     font-size: 0.75rem;
@@ -197,7 +189,6 @@
   }
 }
 
-// Panel ustawień (Prawa strona)
 .admin-settings-panel {
   background: #1e1e1e;
   border: 1px solid #e2c08d;
@@ -339,7 +330,7 @@
 
 .bot-modal {
   background: #1e1e1e;
-  border: 1px solid #e2c08d; // Złota ramka jak w settings
+  border: 1px solid #e2c08d;
   border-radius: 12px;
   padding: 1.5rem;
   width: 100%;
@@ -363,14 +354,13 @@
   }
 }
 
-// --- KAFELKI ---
 .difficulty-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.8rem;
 
   @media (max-width: 500px) {
-    grid-template-columns: 1fr; // Pionowo na mobile
+    grid-template-columns: 1fr;
   }
 }
 
@@ -427,7 +417,6 @@
   }
 }
 
-// --- BUTTONY ---
 .modal-actions {
   display: flex;
   gap: 1rem;

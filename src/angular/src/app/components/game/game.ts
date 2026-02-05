@@ -130,26 +130,20 @@ export class Game implements OnDestroy {
     const serverTiles = this.gameState()?.myHand?.tiles || [];
     const myOrder = this.tileOrder();
 
-    // Jeśli nic jeszcze nie przesunąłeś, pokazuj tak, jak daje serwer
     if (myOrder.length === 0) {
       return serverTiles;
     }
 
-    // Tworzymy mapę dla szybkiego wyszukiwania kafelka po ID
     const tileMap = new Map(serverTiles.map((t) => [t.tileId, t]));
-
-    // Budujemy nową tablicę według TWOJEJ kolejności
     const result: any[] = [];
 
-    // Najpierw dodaj te, które masz w swojej kolejności (jeśli wciąż są w ręce)
     myOrder.forEach((id) => {
       if (tileMap.has(id)) {
         result.push(tileMap.get(id));
-        tileMap.delete(id); // Usuwamy z mapy, żeby nie powtórzyć
+        tileMap.delete(id);
       }
     });
 
-    // Na koniec dodaj kafelki, których nie było w Twoim tileOrder (np. nowo dobrane)
     tileMap.forEach((tile) => result.push(tile));
 
     return result;
@@ -352,28 +346,22 @@ export class Game implements OnDestroy {
   }
 
   onDropToRack(event: CdkDragDrop<any[]>) {
-    // Jeśli to sortowanie na stojaku
     if (event.previousContainer === event.container) {
-      // Pobieramy aktualny stan wizualny (to co gracz widzi przed upuszczeniem)
       const currentDisplay = this.orderedHand();
       const newOrder = currentDisplay.map((t) => t.tileId);
 
-      // Przesuwamy element w tablicy ID
       const [movedId] = newOrder.splice(event.previousIndex, 1);
       newOrder.splice(event.currentIndex, 0, movedId);
 
-      // Zapisujemy nową kolejność - to odpali computed!
       this.tileOrder.set(newOrder);
 
       console.log('Nowa kolejność ID:', newOrder);
     } else {
-      // Tutaj logika usuwania z planszy (localPlacements.delete itd.)
       this.handleReturnToRack(event.item.data);
     }
   }
 
   private handleReturnToRack(tileId: string) {
-    // 1. Czyścimy kafelek z planszy
     const currentPlacements = new Map(this.localPlacements());
     let wasOnBoard = false;
     let removedCell: string | null = null;

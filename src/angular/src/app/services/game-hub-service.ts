@@ -383,9 +383,6 @@ export class GameHubService implements OnDestroy {
           this.lobbyState.set(details);
         });
       } else if (result.isFailure && result.error?.code === 'Error.InvalidState') {
-        // If we get InvalidState, it means the server doesn't think we're in a lobby.
-        // We only clear if we aren't already trying to re-join in refreshFullState.
-        // For now, let's just log it and see.
         console.warn('GetLobbyDetails: Player not in any lobby according to server.');
       } else {
         console.error('GetLobbyDetails failed', result.error);
@@ -405,8 +402,6 @@ export class GameHubService implements OnDestroy {
           this.gameState.set(details);
         });
       } else if (result.isFailure && result.error?.code === 'Error.InvalidState') {
-        // Only clear game state if we are sure we're not in a game.
-        // During reconnect, this might be transient.
         if (this.gameState()) {
           this.ngZone.run(() => this.gameState.set(null));
         }

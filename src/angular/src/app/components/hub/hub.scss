@@ -4,7 +4,7 @@
 
 .lobby-container {
   display: grid;
-  // min-content pozwala kolumnie dopasować się do szerokości app-chat
+
   height: 100%;
   grid-template-columns: 1fr min-content;
   transition: grid-template-columns 0.3s ease;
@@ -13,12 +13,11 @@
 }
 
 .lobby-main {
-  // Usuwamy flex: 1, grid sam zajmie przestrzeń dzięki 1fr
   display: flex;
   flex-direction: column;
   padding: 0 2rem;
   overflow-y: auto;
-  min-width: 0; // Ważne dla stabilności grida
+  min-width: 0;
   padding-bottom: 2rem;
 
   @media (max-width: 500px) {
@@ -33,6 +32,5 @@
   flex-direction: column;
   overflow: visible;
 
-  // KLUCZOWE POPRAWKI:
-  min-width: 0; // Pozwala gridowi zwęzić tę kolumnę poniżej 350px
+  min-width: 0;
 }
