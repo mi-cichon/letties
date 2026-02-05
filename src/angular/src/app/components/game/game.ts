@@ -160,14 +160,29 @@ export class Game implements OnDestroy {
 
       if (turnStart !== this.lastNotifiedTurnStartedAt) {
         this.resetLocalMove();
+        this.scrollToActivePlayer();
       }
 
       if (state?.currentTurnPlayerId === myId && turnStart !== this.lastNotifiedTurnStartedAt) {
         this.lastNotifiedTurnStartedAt = turnStart;
         this.playTurnSound();
-        this.showTurnNotification();
       }
     });
+  }
+
+  private scrollToActivePlayer() {
+    if (window.innerWidth > 900) return;
+
+    setTimeout(() => {
+      const activeCard = document.querySelector('.player-card.active');
+      if (activeCard) {
+        activeCard.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest',
+        });
+      }
+    }, 50);
   }
 
   private async playTurnSound() {
@@ -201,18 +216,6 @@ export class Game implements OnDestroy {
     }
   }
 
-  private showTurnNotification() {
-    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-      const title = this.translocoService.translate('lobby.notification.turnTitle');
-      const body = this.translocoService.translate('lobby.notification.turnBody');
-
-      new Notification(title, {
-        body: body,
-        icon: '/assets/icon.svg',
-      });
-    }
-  }
-
   getTileValueIdFromHand(tileId: string | null): string | undefined {
     if (!tileId) return undefined;
     return this.gameState()?.myHand?.tiles?.find((t) => t.tileId === tileId)?.valueId;
@@ -220,13 +223,6 @@ export class Game implements OnDestroy {
 
   async ngOnInit() {
     await this.gameHubService.getGameDetails();
-    this.requestNotificationPermission();
-  }
-
-  private requestNotificationPermission() {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
   }
 
   onTileSelect(tileId: string) {
@@ -244,6 +240,10 @@ export class Game implements OnDestroy {
       const newMap = new Map(this.localPlacements());
       newMap.delete(cellId);
       this.localPlacements.set(newMap);
+
+      const selMap = new Map(this.localSelectedValues());
+      selMap.delete(cellId);
+      this.localSelectedValues.set(selMap);
       return;
     }
 
@@ -322,25 +322,37 @@ export class Game implements OnDestroy {
     if (this.placedTilesMap().has(cellId)) return;
 
     const currentPlacements = new Map(this.localPlacements());
+    const selMap = new Map(this.localSelectedValues());
 
+    // Find if this tile was already on board and remove it from old position
+    let oldCellId: string | null = null;
     for (const [key, value] of currentPlacements.entries()) {
       if (value === tileId) {
+        oldCellId = key;
         currentPlacements.delete(key);
+        break;
       }
     }
 
-    currentPlacements.set(cellId, tileId);
+    // Move blank selection if applicable
+    if (oldCellId && selMap.has(oldCellId)) {
+      const val = selMap.get(oldCellId);
+      selMap.delete(oldCellId);
+      selMap.set(cellId, val || null);
+    }
 
+    currentPlacements.set(cellId, tileId);
     this.localPlacements.set(currentPlacements);
+    this.localSelectedValues.set(selMap);
 
     this.selectedTileId.set(null);
 
     const vId = this.getTileValueIdFromHand(tileId);
     const def = this.tileDefsMap().get(vId!);
-    if (def?.valueText === '?') {
-      const selMap = new Map(this.localSelectedValues());
-      selMap.set(cellId, null);
-      this.localSelectedValues.set(selMap);
+    if (def?.valueText === '?' && !selMap.has(cellId)) {
+      const newSelMap = new Map(this.localSelectedValues());
+      newSelMap.set(cellId, null);
+      this.localSelectedValues.set(newSelMap);
       this.openBlankPicker(cellId);
     }
   }
@@ -390,8 +402,8 @@ export class Game implements OnDestroy {
     }
   }
 
-  canDropOnBoard = (drag: CdkDrag, drop: CdkDropList): boolean => {
-    return this.isMyTurn();
+  canDropOnBoard = (drag: CdkDrag, drop: CdkDropList<string>): boolean => {
+    return this.isMyTurn() && !this.placedTilesMap().has(drop.data);
   };
 
   moveItemInArray<T>(array: T[], fromIndex: number, toIndex: number): T[] {

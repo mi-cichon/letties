@@ -87,8 +87,6 @@ public class GameLobby : IGameLobby
         
         await UpdateGroupWithLobbyState();
         await _gameContextService.AddToGroup(playerConnectionId, LobbyGroupName);
-        await _gameContextService.NotifyGroup(LobbyGroupName, $"{playerName} has joined the lobby.");
-        
         
         var playerDetails = _players.Values.ToArray()
             .Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName, x.IsBot, x.BotDifficulty))

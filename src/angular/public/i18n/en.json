@@ -29,8 +29,7 @@
       "title": "Technologies and Cookies",
       "content": "To ensure the proper functioning of the service and user convenience, we use the following technical solutions:",
       "point1": "Cookies and LocalStorage: We use only technical (non-tracking) storage mechanisms to maintain the player session and remember language preferences.",
-      "point2": "Browser Notifications: With explicit user consent, the service may send system notifications regarding the game progress (e.g., your turn). These can be disabled at any time in the browser settings.",
-      "point3": "External Services: The service uses Google Fonts to provide a consistent interface appearance. No identification data is collected by us during the font retrieval process."
+      "point2": "External Services: The service uses Google Fonts to provide a consistent interface appearance. No identification data is collected by us during the font retrieval process."
     },
     "terms": {
       "title": "Terms of Use",

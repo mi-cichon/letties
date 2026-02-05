@@ -39,11 +39,7 @@
                 <span class="count">{{ lobby.playerCount }}</span>
               </td>
               <td class="actions-cell">
-                <button
-                  class="join-btn"
-                  (click)="joinLobby(lobby.lobbyId)"
-                  [disabled]="lobby.playerCount === 4"
-                >
+                <button class="join-btn" (click)="joinLobby(lobby.lobbyId)">
                   {{ 'overview.join' | transloco }}
                 </button>
               </td>

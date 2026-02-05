@@ -1,4 +1,14 @@
 @if (gameState(); as state) {
+  @if (lastError(); as error) {
+    <div class="move-error-toast animate-toast">
+      <div class="error-content">
+        <span class="icon">⚠️</span>
+        <span class="message">{{ 'lobby.errors.' + error | transloco }}</span>
+      </div>
+      <button class="close-btn" (click)="lastError.set(null)">×</button>
+    </div>
+  }
+
   <div
     class="game-layout animate-in"
     [style.--grid-size]="state.layout?.width || 15"
@@ -16,35 +26,37 @@
         </div>
       </div>
 
-      <div class="scores-container">
-        @for (score of scoresByDepleted(); track score.playerId) {
-          <div
-            class="player-card"
-            [class.active]="score.playerId === state.currentTurnPlayerId"
-            [class.depleted]="score.timeDepleted"
-            [class.offline]="score.playerId! | getPlayerOffline: lobbyState()!.players!"
-          >
-            <div class="player-info">
-              <div class="top-details">
-                <span class="name">{{ score.playerName }} </span>
-                <span class="hand-indicator">
-                  @let botInfo = score.playerId! | getBotInfo: lobbyState()!.players!;
-                  @if (botInfo.isBot) {
-                    <span class="bot-icon" title="Bot">🤖{{ botInfo.difficultyText }}</span>
-                  }
-                  🤚 {{ score.tilesRemainingInHand }}</span
-                >
-              </div>
+      <div class="score-wrapper">
+        <div class="scores-container">
+          @for (score of scoresByDepleted(); track score.playerId) {
+            <div
+              class="player-card"
+              [class.active]="score.playerId === state.currentTurnPlayerId"
+              [class.depleted]="score.timeDepleted"
+              [class.offline]="score.playerId! | getPlayerOffline: lobbyState()!.players!"
+            >
+              <div class="player-info">
+                <div class="top-details">
+                  <span class="name">{{ score.playerName }} </span>
+                  <span class="hand-indicator">
+                    @let botInfo = score.playerId! | getBotInfo: lobbyState()!.players!;
+                    @if (botInfo.isBot) {
+                      <span class="bot-icon" title="Bot">🤖{{ botInfo.difficultyText }}</span>
+                    }
+                    🤚 {{ score.tilesRemainingInHand }}</span
+                  >
+                </div>
 
-              <div class="details">
-                <span class="score-val">{{ score.totalPoints }} p.</span>
-                <span class="remaining-time">
-                  {{ score.playerId! | getPlayerTime: playerRemainingTimes() }}
-                </span>
+                <div class="details">
+                  <span class="score-val">{{ score.totalPoints }} p.</span>
+                  <span class="remaining-time">
+                    {{ score.playerId! | getPlayerTime: playerRemainingTimes() }}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        }
+          }
+        </div>
       </div>
     </aside>
 
@@ -65,6 +77,7 @@
                 [class]="'cell-type-' + cell.type"
                 cdkDropList
                 [cdkDropListDisabled]="!isMyTurn()"
+                [cdkDropListSortingDisabled]="true"
                 [cdkDropListEnterPredicate]="canDropOnBoard"
                 [cdkDropListData]="cell.id!"
                 (cdkDropListDropped)="onDropToBoard($event)"
@@ -141,16 +154,6 @@
 
       @if (amIPlaying()) {
         <footer class="hand-section">
-          @if (lastError(); as error) {
-            <div class="move-error-toast animate-toast">
-              <div class="error-content">
-                <span class="icon">⚠️</span>
-                <span class="message">{{ 'lobby.errors.' + error | transloco }}</span>
-              </div>
-              <button class="close-btn" (click)="lastError.set(null)">×</button>
-            </div>
-          }
-
           <div class="rack-container">
             <div
               class="player-rack"
@@ -172,8 +175,14 @@
                   cdkDrag
                   [cdkDragData]="tile.tileId"
                   [cdkDragDisabled]="isUsed"
-                  (cdkDragStarted)="draggingTileId.set(tile.tileId); draggingTileIndex.set($index); isDragOverRack.set(true)"
-                  (cdkDragEnded)="draggingTileId.set(null); draggingTileIndex.set(null); isDragOverRack.set(false)"
+                  (cdkDragStarted)="
+                    draggingTileId.set(tile.tileId);
+                    draggingTileIndex.set($index);
+                    isDragOverRack.set(true)
+                  "
+                  (cdkDragEnded)="
+                    draggingTileId.set(null); draggingTileIndex.set(null); isDragOverRack.set(false)
+                  "
                 >
                   <div
                     class="tile in-hand"
@@ -211,29 +220,30 @@
     </main>
 
     <div class="action-sidebar">
-      @if (isMyTurn()) {
-        @if (isSwapMode() && selectedTilesForSwap().size > 0) {
-          <button (click)="confirmSwap()" class="btn-confirm">
-            {{ 'lobby.swap' | transloco }}({{ selectedTilesForSwap().size }})
-          </button>
-        }
-        <button class="btn-swap" (click)="toggleSwapMode()" [class.active]="isSwapMode()">
-          {{ isSwapMode() ? ('lobby.cancel' | transloco) : ('lobby.swap' | transloco) }}
-        </button>
-        <button class="btn-skip" (click)="passTurn()">
-          {{ 'lobby.skip' | transloco }}
-        </button>
-        <button class="btn-reset" (click)="resetLocalMove()">
-          {{ 'lobby.reset' | transloco }}
-        </button>
-        <button
-          class="btn-submit"
-          [disabled]="state.currentTurnPlayerId !== myId()"
-          (click)="submitMove()"
-        >
-          {{ 'lobby.play' | transloco }}
-        </button>
-      }
+      <button
+        (click)="confirmSwap()"
+        class="btn-confirm"
+        [class.visible]="isMyTurn() && isSwapMode() && selectedTilesForSwap().size > 0"
+      >
+        {{ 'lobby.swap' | transloco }}({{ selectedTilesForSwap().size }})
+      </button>
+      <button
+        class="btn-swap"
+        [class.visible]="isMyTurn()"
+        (click)="toggleSwapMode()"
+        [class.active]="isSwapMode()"
+      >
+        {{ isSwapMode() ? ('lobby.cancel' | transloco) : ('lobby.swap' | transloco) }}
+      </button>
+      <button class="btn-skip" [class.visible]="isMyTurn()" (click)="passTurn()">
+        {{ 'lobby.skip' | transloco }}
+      </button>
+      <button class="btn-reset" [class.visible]="isMyTurn()" (click)="resetLocalMove()">
+        {{ 'lobby.reset' | transloco }}
+      </button>
+      <button class="btn-submit" [class.visible]="isMyTurn()" (click)="submitMove()">
+        {{ 'lobby.play' | transloco }}
+      </button>
     </div>
   </div>
 } @else {

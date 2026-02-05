@@ -29,8 +29,7 @@
       "title": "Technologie i pliki cookies",
       "content": "W celu zapewnienia prawidłowego działania serwisu oraz wygody użytkowania, korzystamy z następujących rozwiązań technicznych:",
       "point1": "Pliki Cookies i LocalStorage: Wykorzystujemy wyłącznie techniczne mechanizmy zapisu (nieśledzące), służące do utrzymania sesji gracza oraz zapamiętania preferencji językowych.",
-      "point2": "Powiadomienia przeglądarkowe: Za wyraźną zgodą użytkownika serwis może wysyłać powiadomienia systemowe informujące o przebiegu gry (np. Twoja tura). Można je wyłączyć w dowolnym momencie w ustawieniach przeglądarki.",
-      "point3": "Usługi zewnętrzne: Serwis korzysta z Google Fonts w celu zapewnienia spójnego wyglądu interfejsu. Podczas pobierania czcionek nie są przez nas gromadzone żadne dane identyfikacyjne."
+      "point2": "Usługi zewnętrzne: Serwis korzysta z Google Fonts w celu zapewnienia spójnego wyglądu interfejsu. Podczas pobierania czcionek nie są przez nas gromadzone żadne dane identyfikacyjne."
     },
     "terms": {
       "title": "Zasady korzystania",
