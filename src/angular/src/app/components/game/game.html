@@ -159,24 +159,53 @@
               cdkDropListOrientation="horizontal"
               [cdkDropListData]="orderedHand()"
               (cdkDropListDropped)="onDropToRack($event)"
+              (cdkDropListEntered)="isDragOverRack.set(true)"
+              (cdkDropListExited)="isDragOverRack.set(false)"
+              style="position: relative"
             >
               @for (tile of orderedHand(); track tile.tileId) {
                 @let def = tileDefsMap().get(tile.valueId!);
                 @let isUsed = usedTileIds().has(tile.tileId!);
 
                 <div
-                  class="tile in-hand"
-                  [class.is-used]="isUsed"
+                  class="tile-wrapper"
                   cdkDrag
                   [cdkDragData]="tile.tileId"
                   [cdkDragDisabled]="isUsed"
-                  [class.selected-for-swap]="selectedTilesForSwap().has(tile.tileId)"
-                  (click)="toggleTileSelection(tile.tileId)"
+                  (cdkDragStarted)="draggingTileId.set(tile.tileId); draggingTileIndex.set($index); isDragOverRack.set(true)"
+                  (cdkDragEnded)="draggingTileId.set(null); draggingTileIndex.set(null); isDragOverRack.set(false)"
                 >
-                  <span class="letter">{{ def?.valueText }}</span>
-                  <span class="points">{{ def?.basePoints }}</span>
-                  <div *cdkDragPlaceholder></div>
+                  <!-- WŁAŚCIWY KAFELEK (Wizualizacja) -->
+                  <div
+                    class="tile in-hand"
+                    [class.is-used]="isUsed"
+                    [class.selected-for-swap]="selectedTilesForSwap().has(tile.tileId)"
+                    (click)="toggleTileSelection(tile.tileId)"
+                  >
+                    <span class="letter">{{ def?.valueText }}</span>
+                    <span class="points">{{ def?.basePoints }}</span>
+                  </div>
+
+                  <!-- PLACEHOLDER CDK: Duch do sortowania (widoczny tylko wewnątrz racka) -->
+                  <div *cdkDragPlaceholder class="tile in-hand is-used">
+                    <span class="letter">{{ def?.valueText }}</span>
+                    <span class="points">{{ def?.basePoints }}</span>
+                  </div>
                 </div>
+              }
+
+              <!-- PERMANENTNY DUCH: Pokazuje się, gdy wyjedziesz poza rack -->
+              @if (draggingTileId(); as dragId) {
+                @if (!isDragOverRack()) {
+                  @let def = tileDefsMap().get(getTileValueIdFromHand(dragId)!);
+                  <div
+                    class="tile in-hand is-used ghost-persistent"
+                    [style.--idx]="draggingTileIndex()"
+                  >
+                    <span class="letter">{{ def?.valueText }}</span>
+                    <span class="points">{{ def?.basePoints }}</span>
+                  </div>
+                }
               }
             </div>
           </div>

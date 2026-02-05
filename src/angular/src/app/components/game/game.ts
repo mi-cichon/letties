@@ -63,8 +63,10 @@ export class Game implements OnDestroy {
 
   private gameHubService = inject(GameHubService);
   private translocoService = inject(TranslocoService);
-  private turnNotificationSound = new Audio('/assets/sounds/turn-start.mp3');
   private lastNotifiedTurnStartedAt = '';
+
+  private audioContext?: AudioContext;
+  private turnSoundBuffer?: AudioBuffer;
 
   gameState = this.gameHubService.gameState;
   lobbyState = this.gameHubService.lobbyState.asReadonly();
@@ -99,6 +101,9 @@ export class Game implements OnDestroy {
   lastError = signal<string | null>(null);
 
   selectedTileId = signal<string | null>(null);
+  draggingTileId = signal<string | null>(null);
+  draggingTileIndex = signal<number | null>(null);
+  isDragOverRack = signal<boolean>(false);
   localPlacements = signal<Map<string, string>>(new Map());
 
   usedTileIds = computed(() => new Set(this.localPlacements().values()));
@@ -171,12 +176,35 @@ export class Game implements OnDestroy {
     });
   }
 
-  private playTurnSound() {
+  private async playTurnSound() {
     try {
-      this.turnNotificationSound.volume = 0.15;
-      this.turnNotificationSound.currentTime = 0;
-      this.turnNotificationSound.play();
-    } catch (e) {}
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+
+      if (!this.turnSoundBuffer) {
+        const response = await fetch('/assets/sounds/turn-start.mp3');
+        const arrayBuffer = await response.arrayBuffer();
+        this.turnSoundBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+      }
+
+      const source = this.audioContext.createBufferSource();
+      source.buffer = this.turnSoundBuffer;
+
+      const gainNode = this.audioContext.createGain();
+      gainNode.gain.value = 0.15;
+
+      source.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+
+      source.start(0);
+    } catch (e) {
+      console.error('Audio playback failed', e);
+    }
   }
 
   private showTurnNotification() {

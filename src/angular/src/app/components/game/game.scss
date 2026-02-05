@@ -560,12 +560,68 @@
 
 .player-rack {
   display: flex;
+  width: max-content;
+  margin: 0 auto;
   gap: 6px;
   padding: 1vmin 1vmin;
   background: #5d4037; // Drewniany stojak
   border-radius: 8px;
   box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.4);
   align-items: center;
+  position: relative;
+  // Zapobiega skakaniu planszy gdy element opuszcza rack
+  min-height: calc(4vmin + 2vmin); 
+
+  @media (max-width: 600px) {
+    min-height: calc(38px + 2vmin);
+  }
+}
+
+.tile-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 4vmin;
+  height: 4vmin;
+  cursor: grab;
+
+  @media (max-width: 600px) {
+    width: 38px;
+    height: 38px;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  // Gdy kafelek jest przeciągany, ukrywamy oryginał wewnątrz wrappera
+  &.cdk-drag-dragging {
+    opacity: 0;
+  }
+}
+
+// Styl dla ducha, który nigdy nie znika podczas dragu
+.ghost-persistent {
+  position: absolute;
+  z-index: 0;
+  opacity: 0.5;
+  filter: grayscale(1);
+  pointer-events: none;
+
+  // Wyliczamy pozycję: padding + (indeks * (szerokość + gap))
+  left: calc(1vmin + (var(--idx) * (4vmin + 6px)));
+  top: 1vmin;
+
+  @media (max-width: 600px) {
+    left: calc(1vmin + (var(--idx) * (38px + 6px)));
+  }
+}
+
+// Ukryj placeholder, jeśli trafi na planszę (żeby nie skakał po polach)
+.board .cdk-drag-placeholder {
+  display: none;
 }
 
 // --- DRAG PREVIEW (TO CO LATA ZA MYSZKĄ) ---
@@ -591,7 +647,7 @@
 }
 
 .cdk-drag-placeholder {
-  opacity: 0.2;
+  // Przezroczystość kontrolowana przez klasy wewnątrz (np. .is-used)
 }
 
 .blank-picker {
