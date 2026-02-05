@@ -221,13 +221,6 @@
 
     <div class="action-sidebar">
       <button
-        (click)="confirmSwap()"
-        class="btn-confirm"
-        [class.visible]="isMyTurn() && isSwapMode() && selectedTilesForSwap().size > 0"
-      >
-        {{ 'lobby.swap' | transloco }}({{ selectedTilesForSwap().size }})
-      </button>
-      <button
         class="btn-swap"
         [class.visible]="isMyTurn()"
         (click)="toggleSwapMode()"
@@ -243,6 +236,14 @@
       </button>
       <button class="btn-submit" [class.visible]="isMyTurn()" (click)="submitMove()">
         {{ 'lobby.play' | transloco }}
+      </button>
+
+      <button
+        (click)="confirmSwap()"
+        class="btn-confirm"
+        [class.visible]="isMyTurn() && isSwapMode() && selectedTilesForSwap().size > 0"
+      >
+        {{ 'lobby.swap' | transloco }}({{ selectedTilesForSwap().size }})
       </button>
     </div>
   </div>
