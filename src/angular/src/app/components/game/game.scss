@@ -3,7 +3,35 @@
   height: 100%;
   overflow: hidden;
   user-select: none;
-  background: #0f1113; /* Główne tło */
+  background: #0f1113;
+}
+
+// --- ANIMACJE (KEYFRAMES) ---
+@keyframes slideInLeft {
+  from { transform: translateX(-30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideInRight {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideInBottom {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes slideInTop {
+  from { transform: translateY(-30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes activePulse {
+  0% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0.2); }
+  50% { box-shadow: 0 0 15px 5px rgba(241, 196, 15, 0.15); }
+  100% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0.2); }
+}
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 
 // --- 1. GŁÓWNY UKŁAD (GRID) ---
@@ -11,7 +39,6 @@
   display: grid;
   width: 100%;
   height: 100%;
-  // Desktop: Sidebar (280px) | Board (auto) | Actions (140px)
   grid-template-columns: 280px minmax(0, 1fr) 140px;
   grid-template-rows: 100%;
   container-type: size;
@@ -19,9 +46,7 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   touch-action: none;
 
-  // Mobile / Tablet Vertical
   @media (max-width: 900px) {
-    height: 100%;
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr) auto;
   }
@@ -36,154 +61,66 @@
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
-  z-index: 0;
+  z-index: 10;
+  // Szybsza animacja, bez opóźnienia
+  animation: slideInLeft 0.3s ease-out both;
 
-  // --- ZMIANA NA MOBILE: POZIOMY PASEK ---
   @media (max-width: 900px) {
-    // 1. Układ poziomy całego paska
+    animation: fadeIn 0.3s ease-out both; // Na mobile tylko fade, żeby nie "skakało"
     flex-direction: row;
-    align-items: center; // Wyrównaj wszystko do środka w pionie
+    align-items: center;
     gap: 12px;
-
-    // 2. Obsługa wymiarów i scrolla
     width: 100%;
-    height: auto; // Wysokość tylko tyle ile treść
-    min-height: 50px; // Zabezpieczenie
-    padding: 8px 12px; // Mniejszy padding
-
-    // 3. Scrollowanie poziome
-    overflow-x: auto; // Włącz scroll w bok
-    overflow-y: hidden; // Wyłącz scroll w pionie
-    white-space: nowrap; // Nie zawijaj dzieci do nowej linii
-
-    // Fix dla płynnego scrolla na iOS
-    -webkit-overflow-scrolling: touch;
-
-    // Ukrycie paska przewijania (estetyka "chipsów")
-    scrollbar-width: none; // Firefox
-    &::-webkit-scrollbar {
-      display: none; // Chrome/Safari
-    }
-
+    height: auto;
+    padding: 8px 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
-    // --- SEKCJJA 1: NAGŁÓWEK (Tytuł + Worek) ---
     .sidebar-header {
       display: flex;
-      flex-direction: row; // Obok siebie
+      flex-direction: row;
       align-items: center;
       gap: 12px;
-      margin: 0; // Reset marginesów
-      width: auto; // Nie rozciągaj
-      flex-shrink: 0; // Nie zgniataj nagłówka
-
-      // Separator między nagłówkiem a graczami
       padding-right: 12px;
       border-right: 1px solid rgba(255, 255, 255, 0.1);
-
-      h2 {
-        margin: 0;
-        font-size: 0.9rem; // Mniejszy font
-        white-space: nowrap;
-      }
-
+      h2 { font-size: 0.9rem; color: #f1c40f; margin: 0; }
       .bag-card {
-        padding: 4px 8px; // Kompaktowy worek
+        padding: 4px 8px;
         gap: 6px;
-        .icon {
-          font-size: 1rem;
-        }
-        .bag-details {
-          // Na mobile ukrywamy napis "Worek", zostawiamy tylko liczbę
-          .label {
-            display: none;
-          }
-          .count {
-            font-size: 0.9rem;
-          }
-        }
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        .icon { font-size: 1rem; }
+        .bag-details { .label { display: none; } .count { font-size: 0.9rem; } }
       }
     }
 
-    // --- SEKJA 2: LISTA GRACZY ---
-    .scores-container {
-      display: flex;
-      flex-direction: row;
-      gap: 8px;
-      overflow: visible; // Scrolluje rodzic (.game-sidebar), a nie ten kontener
-      padding: 0;
-      flex: 1; // Zajmij resztę miejsca
-    }
+    .scores-container { display: flex; flex-direction: row; gap: 8px; flex: 1; }
 
     .player-card {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
       margin-bottom: 0;
-      padding: 4px 10px; // Bardziej płaskie karty
-      min-width: auto; // Reset szerokości
-      flex-shrink: 0; // Nie zgniataj kart graczy
-
-      // Przebudowa wnętrza karty na poziomą
-      .player-info {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .top-details,
-      .details {
-        display: flex;
-        gap: 8px;
-        margin: 0;
-      }
-
-      // Ukrywamy mniej ważne rzeczy na pasku, żeby się zmieściło
-      .hand-indicator {
-        font-size: 0.75rem;
-      }
-      .name {
-        font-size: 0.9rem;
-        max-width: 100px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .score-val {
-        font-size: 0.9rem;
-      }
+      padding: 4px 10px;
+      flex-shrink: 0;
+      .player-info { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+      .top-details, .details { display: flex; gap: 8px; margin: 0; }
       .remaining-time {
         display: flex;
         align-items: center;
         gap: 4px;
         font-size: 0.85rem;
-        font-family: monospace;
-        color: #f1c40f;
         background: rgba(0, 0, 0, 0.2);
         padding: 2px 6px;
         border-radius: 4px;
-
-        &::before {
-          content: '🕒';
-          font-size: 0.75rem;
-        }
+        &::before { content: '🕒'; font-size: 0.75rem; }
       }
-
-      &.active {
-        border-left: none; // Reset
-        border-bottom: 2px solid #f1c40f; // Aktywny gracz podkreślony od dołu
-      }
+      &.active { border-left: none; border-bottom: 2px solid #f1c40f; }
     }
   }
 }
 
-.sidebar-header h2 {
-  color: #f1c40f;
-  margin: 0 0 10px 0;
-  font-size: 1.5rem;
-}
+.sidebar-header h2 { color: #f1c40f; margin: 0 0 10px 0; font-size: 1.5rem; }
 
 .bag-card {
   display: flex;
@@ -192,20 +129,12 @@
   background: rgba(255, 255, 255, 0.05);
   padding: 10px;
   border-radius: 8px;
-  .icon {
-    font-size: 1.5rem;
-  }
+  .icon { font-size: 1.5rem; }
   .bag-details {
     display: flex;
     flex-direction: column;
-    .label {
-      font-size: 0.75rem;
-      color: #bbb;
-    }
-    .count {
-      font-weight: bold;
-      font-size: 1.1rem;
-    }
+    .label { font-size: 0.75rem; color: #bbb; }
+    .count { font-weight: bold; font-size: 1.1rem; }
   }
 }
 
@@ -215,43 +144,28 @@
   border-radius: 8px;
   border-left: 4px solid transparent;
   margin-bottom: 8px;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 
   &.active {
     background: rgba(241, 196, 15, 0.1);
     border-left-color: #f1c40f;
+    animation: activePulse 2s infinite ease-in-out;
   }
-  &.offline {
-    background: rgba(241, 15, 53, 0.205) !important;
-  }
-  &.depleted {
-    transform: translateX(-10px);
-    filter: grayscale(1);
-  }
+  &.offline { background: rgba(241, 15, 53, 0.205) !important; }
+  &.depleted { transform: translateX(-10px); filter: grayscale(1); }
 
   .top-details {
     display: flex;
     justify-content: space-between;
     margin-bottom: 4px;
-    .name {
-      font-weight: bold;
-      color: #ecf0f1;
-    }
-    .hand-indicator {
-      font-size: 0.85rem;
-      color: #bdc3c7;
-    }
+    .name { font-weight: bold; color: #ecf0f1; }
+    .hand-indicator { font-size: 0.85rem; color: #bdc3c7; }
   }
   .details {
     display: flex;
     justify-content: space-between;
-    .score-val {
-      color: #f1c40f;
-      font-weight: bold;
-    }
-    .remaining-time {
-      font-family: monospace;
-    }
+    .score-val { color: #f1c40f; font-weight: bold; }
+    .remaining-time { font-family: monospace; color: #f1c40f; }
   }
 }
 
@@ -264,24 +178,19 @@
   flex-direction: column;
   gap: 12px;
   justify-content: center;
+  animation: slideInRight 0.3s ease-out both;
 
-  // Na mobilce przyciski pływają nad planszą po prawej
   @media (max-width: 900px) {
+    animation: fadeIn 0.3s ease-out both;
     flex-direction: row;
-    pointer-events: none; // Przepuszcza kliknięcia pod spodem
+    pointer-events: none;
     flex-wrap: wrap;
     padding: 0;
-
-    button {
-      pointer-events: auto;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-      padding: 8px 12px;
-      font-size: 0.8rem;
-    }
+    button { pointer-events: auto; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); }
   }
 
   button {
-    padding: 8px 14px; // Zmniejszone z 12px 20px
+    padding: 8px 14px;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.05);
@@ -291,7 +200,7 @@
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 
     &:hover:not(:disabled) {
@@ -299,70 +208,37 @@
       border-color: rgba(255, 255, 255, 0.3);
       transform: translateY(-2px);
     }
-
-    &:active:not(:disabled) {
-      transform: translateY(0) scale(0.96);
-    }
-
-    &:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-      filter: grayscale(1);
-    }
+    &:active:not(:disabled) { transform: translateY(0) scale(0.96); }
+    &:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(1); }
 
     &.btn-submit {
       background: #f1c40f;
       color: #0f1113;
       border-color: #f1c40f;
-      box-shadow: 0 4px 20px rgba(241, 196, 15, 0.2);
-
-      &:hover:not(:disabled) {
-        background: #f39c12;
-        box-shadow: 0 6px 25px rgba(241, 196, 15, 0.4);
-      }
+      &:hover:not(:disabled) { background: #f39c12; }
     }
-
-    &.btn-reset {
-      color: #bdc3c7;
-      border-color: rgba(189, 195, 199, 0.3);
-    }
-
+    &.btn-reset { color: #bdc3c7; border-color: rgba(189, 195, 199, 0.3); }
     &.btn-skip {
       color: #e74c3c;
       border-color: rgba(231, 76, 60, 0.3);
-      &:hover:not(:disabled) {
-        background: rgba(231, 76, 60, 0.1);
-      }
+      &:hover:not(:disabled) { background: rgba(231, 76, 60, 0.1); }
     }
-
     &.btn-swap {
       color: #3498db;
       border-color: rgba(52, 152, 219, 0.3);
-      &.active {
-        background: #3498db;
-        color: white;
-      }
-      &:hover:not(:disabled) {
-        background: rgba(52, 152, 219, 0.1);
-      }
+      &.active { background: #3498db; color: white; }
     }
-
     &.btn-confirm {
-      background: #e67e22; // Pomarańczowy zamiast złotego
+      background: #e67e22;
       color: #fff;
       border-color: #e67e22;
-      box-shadow: 0 4px 20px rgba(230, 126, 34, 0.2);
       animation: pulse 1.5s infinite;
-
-      &:hover:not(:disabled) {
-        background: #d35400;
-        box-shadow: 0 6px 25px rgba(230, 126, 34, 0.4);
-      }
+      &:hover:not(:disabled) { background: #d35400; }
     }
   }
 }
 
-// --- 4. BOARD AREA (GŁÓWNY OBSZAR GRY) ---
+// --- 4. BOARD AREA ---
 .board-area {
   position: relative;
   display: flex;
@@ -370,106 +246,56 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-
-  @media (max-width: 900px) {
-    height: 70vh;
-  }
-  @media (max-width: 500px) {
-    height: 60vh;
-  }
+  @media (max-width: 900px) { height: 70vh; }
+  @media (max-width: 500px) { height: 60vh; }
 }
 
-// Wrapper oddziela planszę od ręki
 .board-wrapper {
-  flex: 1; // Zajmuje całe dostępne miejsce nad ręką
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 10px;
-  min-height: 0; // Fix dla flexa
 }
 
-// Kontener dla Container Queries
 .board-container {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  container-type: size; // KLUCZOWE: Pozwala dzieciom znać rozmiar tego pudełka
+  container-type: size;
 }
 
 .board {
-  // Magia: 100% mniejszego wymiaru (szerokości lub wysokości) kontenera
   width: 100cqmin;
   height: 100cqmin;
-
   display: grid;
-  // Siatka oparta na zmiennych z HTML
   grid-template-columns: repeat(var(--grid-cols), 1fr);
   grid-template-rows: repeat(var(--grid-rows), 1fr);
-
-  gap: 0.4%; // Odstępy w %
+  gap: 0.4%;
   padding: 0.5%;
   background: #0f1113;
   border-radius: 1cqw;
 }
 
-// --- 5. KOMÓRKI (CELLS) ---
 .cell {
-  background: #1e2226; // Domyślne tło
+  background: #1e2226;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 8%;
+  transition: background 0.2s ease;
+  &:hover:not(:has(.tile)) { background: #2a2f35; }
 
-  // Kolory specjalne (dopasowane do ciemnego motywu)
-  &.cell-type-Start {
-    background: #c0392b;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-  }
-  &.cell-type-Center {
-    background: #332d1b;
-    .cell-label {
-      color: #f1c40f;
-      font-size: 0.8rem;
-      opacity: 1;
-    }
-  }
-  &.cell-type-DoubleLetter {
-    background: #242b31;
-    .cell-label {
-      color: #3498db;
-      opacity: 0.6;
-    }
-  }
+  &.cell-type-Start { background: #c0392b; }
+  &.cell-type-Center { background: #332d1b; .cell-label { color: #f1c40f; font-size: 0.8rem; opacity: 1; } }
+  &.cell-type-DoubleLetter { background: #242b31; .cell-label { color: #3498db; opacity: 0.6; } }
+  &.cell-type-TripleLetter { background: #212d38; .cell-label { color: #2980b9; opacity: 0.8; } }
+  &.cell-type-DoubleWord { background: #2e2424; .cell-label { color: #e74c3c; opacity: 0.6; } }
+  &.cell-type-TripleWord { background: #3a2121; .cell-label { color: #c0392b; opacity: 0.8; } }
 
-  &.cell-type-TripleLetter {
-    background: #212d38;
-    .cell-label {
-      color: #2980b9;
-      opacity: 0.8;
-    }
-  }
-
-  // Pola premii słownej (Reddish accents)
-  &.cell-type-DoubleWord {
-    background: #2e2424;
-    .cell-label {
-      color: #e74c3c;
-      opacity: 0.6;
-    }
-  }
-  &.cell-type-TripleWord {
-    background: #3a2121;
-    .cell-label {
-      color: #c0392b;
-      opacity: 0.8;
-    }
-  }
-
-  // Etykiety pól (np. 3LS)
   .cell-label {
     font-size: clamp(0.7rem, 1.8vmin, 1.6rem);
     font-weight: 900;
@@ -493,98 +319,44 @@
   z-index: 2;
   cursor: grab;
   position: relative;
-  container-type: size; // Pozwala na skalowanie treści względem wielkości kafelka
+  container-type: size;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 
-  .letter {
-    font-size: 54cqmin; // Zmniejszone z 58, aby zrobić miejsce
-    font-weight: 700;
-    color: #3e2723;
-    line-height: 1;
-    display: block;
-  }
+  .letter { font-size: 54cqmin; font-weight: 700; color: #3e2723; line-height: 1; display: block; }
+  .points { position: absolute; bottom: 4cqmin; right: 4cqmin; font-size: 36cqmin; font-weight: 700; color: #3e2723; }
+  .blank-indicator { position: absolute; bottom: 4cqmin; left: 4cqmin; font-size: 28cqmin; color: #3e2723; font-weight: 700; }
 
-  .points {
-    position: absolute;
-    bottom: 4cqmin;
-    right: 4cqmin;
-    font-size: 36cqmin; // Zwiększone z 30
-    font-weight: 700; // Pogrubione dla czytelności
-    color: #3e2723;
-    line-height: 1;
-  }
-
-  .blank-indicator {
-    position: absolute;
-    bottom: 4cqmin;
-    left: 4cqmin;
-    font-size: 28cqmin; 
-    color: #3e2723;
-    font-weight: 700;
-    opacity: 1;
-  }
-
-  // Stany
-  &.placed {
-    box-shadow: none;
-    cursor: default;
-  }
-
-  &.local {
-    filter: grayscale(100%);
-    box-sizing: border-box;
-  }
-
-  &:active {
-    cursor: grabbing;
-  }
-  &.is-used {
-    opacity: 0.5;
-    filter: grayscale(1);
-    cursor: not-allowed;
-  }
+  &.placed { box-shadow: none; cursor: default; }
+  &.local { filter: grayscale(100%); box-sizing: border-box; }
+  &.is-used { opacity: 0.5; filter: grayscale(1); cursor: not-allowed; }
   &.selected-for-swap {
     transform: translateY(-8px);
     background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
     border: 2px solid #ff7675;
     box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
-
-    .letter,
-    .points {
-      color: white;
-    }
+    .letter, .points { color: white; }
   }
 
-  // --- KAFELEK W RĘCE ---
   &.in-hand {
     width: 4vmin;
     height: 4vmin;
     flex-shrink: 0;
-
-    // Ponieważ dodaliśmy container-type: size do .tile, 
-    // wewnętrzne style .letter i .points zadziałają automatycznie 
-    // i przeskalują się do tych 4vmin!
-
-    @media (max-width: 600px) {
-      width: 38px;
-      height: 38px;
-    }
+    @media (max-width: 600px) { width: 38px; height: 38px; }
   }
 }
 
-// --- 7. HAND SECTION (DOLNA BELKA) ---
+// --- 7. HAND SECTION ---
 .hand-section {
   width: 100%;
   display: flex;
   justify-content: center;
   padding-bottom: 10px;
   z-index: 20;
-  flex-shrink: 0; // Nie zgniatać ręki!
+  flex-shrink: 0;
+  animation: slideInBottom 0.5s ease-out;
 }
 
-.rack-container {
-  display: flex;
-  justify-content: center;
-}
+.rack-container { display: flex; justify-content: center; }
 
 .player-rack {
   display: flex;
@@ -592,17 +364,13 @@
   margin: 0 auto;
   gap: 6px;
   padding: 1vmin 1vmin;
-  background: #5d4037; // Drewniany stojak
+  background: #5d4037;
   border-radius: 8px;
   box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.4);
   align-items: center;
   position: relative;
-  // Zapobiega skakaniu planszy gdy element opuszcza rack
   min-height: calc(4vmin + 2vmin); 
-
-  @media (max-width: 600px) {
-    min-height: calc(38px + 2vmin);
-  }
+  @media (max-width: 600px) { min-height: calc(38px + 2vmin); }
 }
 
 .tile-wrapper {
@@ -614,45 +382,31 @@
   width: 4vmin;
   height: 4vmin;
   cursor: grab;
-
-  @media (max-width: 600px) {
-    width: 38px;
-    height: 38px;
-  }
-
-  &:active {
-    cursor: grabbing;
-  }
-
-  // Gdy kafelek jest przeciągany, ukrywamy oryginał wewnątrz wrappera
-  &.cdk-drag-dragging {
-    opacity: 0;
-  }
+  @media (max-width: 600px) { width: 38px; height: 38px; }
+  &:active { cursor: grabbing; }
+  &.cdk-drag-dragging { opacity: 0; }
 }
 
-// Styl dla ducha, który nigdy nie znika podczas dragu
 .ghost-persistent {
   position: absolute;
-  z-index: 0;
-  opacity: 0.5;
+  z-index: 1; 
+  opacity: 0.4;
   filter: grayscale(1);
   pointer-events: none;
-
-  // Wyliczamy pozycję: padding + (indeks * (szerokość + gap))
   left: calc(1vmin + (var(--idx) * (4vmin + 6px)));
   top: 1vmin;
-
-  @media (max-width: 600px) {
-    left: calc(1vmin + (var(--idx) * (38px + 6px)));
-  }
+  @media (max-width: 600px) { left: calc(1vmin + (var(--idx) * (38px + 6px))); }
 }
 
-// Ukryj placeholder, jeśli trafi na planszę (żeby nie skakał po polach)
-.board .cdk-drag-placeholder {
-  display: none;
+.cdk-ghost {
+  z-index: 2 !important;
+  background: #5d4037 !important;
+  opacity: 1 !important;
+  filter: grayscale(1);
 }
 
-// --- DRAG PREVIEW (TO CO LATA ZA MYSZKĄ) ---
+.board .cdk-drag-placeholder { display: none; }
+
 .cdk-drag-preview {
   width: 50px;
   height: 50px;
@@ -663,209 +417,14 @@
   justify-content: center;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   opacity: 0.9;
-
-  .letter {
-    font-size: 1.6rem;
-    font-weight: bold;
-    color: #3e2723;
-  }
-  .points {
-    display: none;
-  } // Ukrywamy punkty podczas przenoszenia dla czytelności
+  transition: none !important; // WYŁĄCZ PRZEJŚCIA DLA PODGLĄDU
+  .letter { font-size: 1.6rem; font-weight: bold; color: #3e2723; }
+  .points { display: none; }
 }
 
-.cdk-drag-placeholder {
-  // Przezroczystość kontrolowana przez klasy wewnątrz (np. .is-used)
+// Globalne wyłączenie animacji dla elementów w ruchu
+.cdk-drag-dragging {
+  transition: none !important;
 }
 
-.blank-picker {
-  position: absolute;
-  z-index: 9999;
-  background: rgba(15, 17, 19, 0.95); // Ciemne, lekko przezroczyste tło
-  backdrop-filter: blur(8px); // Efekt oszronionego szkła
-  border: 2px solid #f1c40f;
-  padding: 12px;
-  border-radius: 12px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
-  width: max-content;
-
-  &.top {
-    top: 100%;
-  }
-
-  &.bottom {
-    bottom: 100%;
-  }
-
-  &.left {
-    left: 100%;
-  }
-
-  &.right {
-    right: 100%;
-  }
-
-  .blank-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr); // 7 liter w rzędzie, żeby było zgrabniej
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-
-  .blank-btn {
-    // Tutaj stylizujemy przycisk, żeby udawał kafelek (tile)
-    width: 3vh;
-    height: 3vh;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    @media (max-width: 500px) {
-      width: 4vw;
-      height: 4vw;
-      font-size: 2vw !important;
-    }
-
-    // Twój styl kafelka:
-    background: linear-gradient(135deg, #ebdcb2 0%, #cfa966 100%);
-    border-radius: 4px;
-    border: none;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
-
-    // Tekst w środku:
-    color: #3e2723;
-    font-weight: 800;
-    font-size: 1rem;
-    cursor: pointer;
-    transition:
-      transform 0.1s,
-      filter 0.1s;
-
-    &:hover {
-      transform: scale(1.15);
-      filter: brightness(1.1);
-      box-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
-    }
-
-    &:active {
-      transform: scale(0.95);
-    }
-  }
-
-  .blank-clear {
-    width: 100%;
-    background: #c0392b;
-    color: white;
-    border: none;
-    padding: 0.8vh;
-    border-radius: 6px;
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: background 0.2s;
-
-    &:hover {
-      background: #e74c3c;
-    }
-
-    @media (max-width: 500px) {
-      padding: 0.2vh;
-      font-size: 0.6rem;
-    }
-  }
-}
-
-.move-error-toast {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 99999;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-
-  min-width: 300px;
-  max-width: 90vw;
-  background: #c0392b;
-  color: white;
-  padding: 12px 20px;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  border-bottom: 4px solid darken(#c0392b, 10%);
-
-  .error-content {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 600;
-
-    .icon {
-      font-size: 1.4rem;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-  }
-
-  .close-btn {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-    cursor: pointer;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-    line-height: 1;
-
-    &:hover {
-      opacity: 1;
-    }
-  }
-}
-
-// Animacja wjazdu z góry
-.animate-toast {
-  animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-@keyframes slideDown {
-  from {
-    top: -100px;
-    opacity: 0;
-  }
-  to {
-    top: 20px;
-    opacity: 1;
-  }
-}
-
-// Animacje
-.animate-in {
-  animation: fadeIn 0.5s ease-out;
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

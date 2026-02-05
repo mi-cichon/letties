@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, Signal, signal } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { LoginHubService } from './services/login-hub-service';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -15,6 +15,7 @@ import { environment } from '../environments/environment';
 })
 export class App {
   public readonly loginHubService = inject(LoginHubService);
+  private readonly router = inject(Router);
 
   public $initiateLoginHub: Signal<boolean> = toSignal(
     from(this.loginHubService.initLoginConnection()),
@@ -26,6 +27,10 @@ export class App {
   protected activeLang = toSignal(this.translocoService.langChanges$, {
     initialValue: this.translocoService.getActiveLang(),
   });
+
+  goHome() {
+    this.router.navigate(['/overview']);
+  }
 
   setLang(lang: string) {
     this.translocoService.setActiveLang(lang);
