@@ -190,6 +190,10 @@ public class GameLobby : IGameLobby
                 GameEngine.SetPlayerOnline(playerId, false);
                 await UpdateGroupWithLobbyState();
             }
+            else
+            {
+                await LeaveLobby(playerId);
+            }
         }
         
         return Result.Success();
