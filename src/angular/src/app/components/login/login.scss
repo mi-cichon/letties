@@ -107,3 +107,19 @@ button {
     cursor: not-allowed;
   }
 }
+
+.legal-footer {
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+
+  a {
+    color: #666;
+    text-decoration: none;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #e2c08d;
+      text-decoration: underline;
+    }
+  }
+}

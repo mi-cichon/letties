@@ -6,7 +6,42 @@
     "span": "Enter your nickname to join the game",
     "name": "Username",
     "loggingIn": "Logging in...",
-    "join": "JOIN GAME"
+    "join": "JOIN GAME",
+    "legalLink": "Privacy & Terms"
+  },
+  "privacy": {
+    "title": "Legal Information",
+    "general": {
+      "title": "General Information",
+      "content": "Letties prioritizes user privacy. The platform is designed to minimize the amount of processed information."
+    },
+    "data": {
+      "title": "Data Processing",
+      "content": "We only process a chosen nickname, which is necessary to identify the player during the game:",
+      "point1": "The nickname is stored in the server's volatile memory only for the duration of the game session.",
+      "point2": "Secure authorization tokens are used to maintain session continuity and are stored locally in your browser."
+    },
+    "storage": {
+      "title": "Security and Storage",
+      "content": "The application does not use persistent databases. All game-related information is deleted after the session ends or the access token expires."
+    },
+    "technical": {
+      "title": "Technologies and Cookies",
+      "content": "To ensure the proper functioning of the service and user convenience, we use the following technical solutions:",
+      "point1": "Cookies and LocalStorage: We use only technical (non-tracking) storage mechanisms to maintain the player session and remember language preferences.",
+      "point2": "External Services: The service uses Google Fonts to provide a consistent interface appearance. No identification data is collected by us during the font retrieval process."
+    },
+    "terms": {
+      "title": "Terms of Use",
+      "point1": "Users agree not to use nicknames that are offensive, vulgar, or violate the rights of others.",
+      "point2": "The service is provided for entertainment purposes 'as is'. We do not guarantee uninterrupted availability of the service.",
+      "point3": "The administrator reserves the right to terminate user sessions or modify game parameters at any time."
+    },
+    "contact": {
+      "title": "Contact",
+      "content": "Any inquiries or feedback regarding the service can be directed via GitHub profile: github.com/mi-cichon"
+    },
+    "back": "Back to Login"
   },
   "overview": {
     "id": "ID",

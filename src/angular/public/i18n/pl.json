@@ -6,7 +6,42 @@
     "span": "Wpisz swój nick, aby dołączyć do gry",
     "name": "Nazwa użytkownika",
     "loggingIn": "Logowanie...",
-    "join": "DOŁĄCZ DO GRY"
+    "join": "DOŁĄCZ DO GRY",
+    "legalLink": "Prywatność i Zasady"
+  },
+  "privacy": {
+    "title": "Informacje Prawne",
+    "general": {
+      "title": "Informacje ogólne",
+      "content": "Serwis Letties kładzie duży nacisk na prywatność użytkowników. Gra została zaprojektowana tak, aby minimalizować ilość przetwarzanych informacji."
+    },
+    "data": {
+      "title": "Przetwarzanie danych",
+      "content": "Przetwarzamy wyłącznie nazwę użytkownika (nick), która jest niezbędna do identyfikacji gracza w trakcie rozgrywki:",
+      "point1": "Nick gracza jest przechowywany w pamięci operacyjnej serwera wyłącznie na czas trwania sesji gry.",
+      "point2": "Do utrzymania ciągłości sesji wykorzystujemy bezpieczne tokeny autoryzacyjne, zapisywane w pamięci lokalnej przeglądarki."
+    },
+    "storage": {
+      "title": "Bezpieczeństwo i przechowywanie",
+      "content": "Aplikacja nie korzysta z trwałych baz danych. Wszystkie informacje o przebiegu gry są usuwane po zakończeniu sesji lub wygaśnięciu tokena dostępowego."
+    },
+    "technical": {
+      "title": "Technologie i pliki cookies",
+      "content": "W celu zapewnienia prawidłowego działania serwisu oraz wygody użytkowania, korzystamy z następujących rozwiązań technicznych:",
+      "point1": "Pliki Cookies i LocalStorage: Wykorzystujemy wyłącznie techniczne mechanizmy zapisu (nieśledzące), służące do utrzymania sesji gracza oraz zapamiętania preferencji językowych.",
+      "point2": "Usługi zewnętrzne: Serwis korzysta z Google Fonts w celu zapewnienia spójnego wyglądu interfejsu. Podczas pobierania czcionek nie są przez nas gromadzone żadne dane identyfikacyjne."
+    },
+    "terms": {
+      "title": "Zasady korzystania",
+      "point1": "Użytkownik zobowiązuje się do nieużywania nicków o charakterze obraźliwym, wulgarnym lub naruszającym dobra osobiste innych osób.",
+      "point2": "Serwis jest udostępniany w celach rozrywkowych w stanie takim, jakim jest ('as is'). Nie gwarantujemy nieprzerwanej dostępności usług.",
+      "point3": "Administrator zastrzega sobie prawo do zakończenia sesji użytkownika lub modyfikacji parametrów gry w dowolnym momencie."
+    },
+    "contact": {
+      "title": "Kontakt",
+      "content": "Wszelkie pytania lub uwagi dotyczące działania serwisu można kierować poprzez profil GitHub: github.com/mi-cichon"
+    },
+    "back": "Powrót do logowania"
   },
   "overview": {
     "id": "ID",

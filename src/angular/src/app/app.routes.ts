@@ -14,6 +14,10 @@ export const routes: Routes = [
     canActivate: [notAuthorizedGuard],
   },
   {
+    path: 'privacy',
+    loadComponent: () => import('./components/privacy/privacy').then((m) => m.Privacy),
+  },
+  {
     path: 'overview',
     loadComponent: () => import('./components/overview/overview').then((m) => m.Overview),
     canActivate: [authorizationGuard],
