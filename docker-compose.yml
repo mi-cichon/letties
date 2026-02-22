@@ -9,7 +9,7 @@ services:
       - ./logs:/app/logs
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - AllowedOrigins__0=https://letties.pl
+      - AllowedOrigins__0=https://letties.online
 
   seq:
     image: datalust/seq:latest

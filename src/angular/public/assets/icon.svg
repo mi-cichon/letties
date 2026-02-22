@@ -13,25 +13,25 @@
   </defs>
 
   <!-- Kształt kafelka z zaokrąglonymi rogami -->
-  <rect x="30" y="30" width="452" height="452" rx="60" ry="60" 
+  <rect x="110" y="110" width="292" height="292" rx="40" ry="40" 
         fill="url(#tileGradient)" 
         filter="url(#dropShadow)" />
 
   <!-- Główna litera L -->
   <!-- Używam font-family podobnego do systemowego, waga 800 (bold), kolor #3e2723 -->
-  <text x="50%" y="58%" 
+  <text x="50%" y="56%" 
         font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" 
         font-weight="800" 
-        font-size="320" 
+        font-size="200" 
         fill="#3e2723" 
         text-anchor="middle" 
         dominant-baseline="middle">L</text>
 
   <!-- Punkty (dla L zazwyczaj 2 w PL, 1 w EN - dam 1 jako uniwersalne/startowe) -->
-  <text x="410" y="420" 
+  <text x="375" y="380" 
         font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" 
         font-weight="700" 
-        font-size="90" 
+        font-size="60" 
         fill="#3e2723" 
         text-anchor="end">1</text>
 </svg>
