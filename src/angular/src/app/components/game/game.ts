@@ -9,7 +9,6 @@ import {
   signal,
 } from '@angular/core';
 import {
-  GameDetails,
   LobbyPlayerDetails,
   MoveRequestModel,
   MoveResult,
@@ -19,10 +18,8 @@ import {
 import { GameHubService } from '../../services/game-hub-service';
 import { LoadingSpinnerComponent } from '../../common/loading-spinner/loading-spinner';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { PlayerNamePipe } from './pipes/player-name-pipe';
 import { CellLabelPipe } from './pipes/cell-label-pipe';
 import { getPlayerId } from '../../core/utils/token-utils';
-import { SlicePipe } from '@angular/common';
 import {
   CdkDrag,
   CdkDragDrop,
@@ -62,7 +59,6 @@ export class Game implements OnDestroy {
   myId = signal(getPlayerId());
 
   private gameHubService = inject(GameHubService);
-  private translocoService = inject(TranslocoService);
   private lastNotifiedTurnStartedAt = '';
 
   private audioContext?: AudioContext;

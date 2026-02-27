@@ -18,6 +18,8 @@ public class HardBotStrategy(
 {
     private readonly Random _random = new();
 
+    private const int MinPointsToMove = 10;
+    private const int MaxTilesToSwap = 10;
     private const int MaxLettersToUse = 7;
     private readonly (int From, int To) WaitRangeSeconds = (2, 15);
 
@@ -27,6 +29,7 @@ public class HardBotStrategy(
         BoardLayoutDetails boardLayout,
         List<PlacedTileDetails> placedTiles,
         PlayerHandDetails botHand,
+        int tilesLeftInBag,
         GameLanguage language)
     {
         var waitSeconds = _random.Next(WaitRangeSeconds.From, WaitRangeSeconds.To);
@@ -88,6 +91,17 @@ public class HardBotStrategy(
             {
                 bestMove = (move, result.PointsEarned);
             }
+        }
+
+        if (bestMove.Score < MinPointsToMove && tilesLeftInBag > MaxTilesToSwap)
+        {
+            var tilesToExchange = botHand.Tiles
+                .OrderBy(_ => _random.Next())
+                .Take(botHand.Tiles.Count)
+                .Select(t => t.TileId)
+                .ToList();
+            
+            return new SwapTilesAction(tilesToExchange);
         }
 
         var selectedMove = bestMove.Move ?? validMoves.First();

@@ -9,7 +9,8 @@ public interface IBotStrategy
     
     Task<BotAction> GetNextMove(
         BoardLayoutDetails boardLayout, 
-        List<PlacedTileDetails> placedTiles, 
+        List<PlacedTileDetails> placedTiles,
         PlayerHandDetails botHand,
+        int tilesLeftInBag,
         GameLanguage language);
 }

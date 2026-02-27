@@ -344,10 +344,22 @@ public class GameLobby : IGameLobby
         _logger.LogInformation("Lobby {LobbyId}: Game started.", LobbyId);
         
         await _gameContextService.NotifyGroup(LobbyGroupName, "Game has started.");
+
+        var seatedPlayerIds = _seats.Values
+            .Where(x => x.PlayerId != null)
+            .Select(x => x.PlayerId!.Value)
+            .ToList();
+
+        var seatedPlayers = _players
+            .Where(x => seatedPlayerIds.Contains(x.Key))
+            .Select(x => x.Value)
+            .ToList();
+        
         
         GameEngine = _gameEngineFactory.CreateEngine(
             _lobbySettings, 
-            _players.Values.Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName, x.IsBot, x.BotDifficulty)).ToList(), 
+            seatedPlayers
+                .Select(x => new LobbyPlayerDetails(x.PlayerId, x.PlayerName, x.IsBot, x.BotDifficulty)).ToList(), 
             () => _ = UpdateGroupWithGameState(),
             gameFinishedDetails => _ = FinishGame(gameFinishedDetails));
         

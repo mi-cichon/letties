@@ -29,6 +29,7 @@ public class EasyBotStrategy(
         BoardLayoutDetails boardLayout,
         List<PlacedTileDetails> placedTiles,
         PlayerHandDetails botHand,
+        int tilesLeftInBag,
         GameLanguage language)
     {
         var waitSeconds = _random.Next(WaitRangeSeconds.From, WaitRangeSeconds.To);

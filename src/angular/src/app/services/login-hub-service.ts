@@ -163,6 +163,7 @@ export class LoginHubService {
   public logout(): void {
     localStorage.removeItem(environment.jwtStorageKey);
     localStorage.removeItem(environment.nicknameStorageKey);
+    localStorage.removeItem(environment.playerIdStorageKey);
     this._loggedIn.set(false);
     this.router.navigate(['/login']);
   }

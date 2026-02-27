@@ -221,7 +221,7 @@ public class LetterGameEngine : ILetterGameEngine
         _logger.LogInformation("Player {PlayerId} skipping turn.", playerId);
         
         HandleScorelessTurn();
-        RotateTurn();
+        RotateTurn(false);
         return Result.Success();
     }
     
@@ -278,7 +278,7 @@ public class LetterGameEngine : ILetterGameEngine
         foreach (var t in shuffled) _tileBag.Push(t);
         
         HandleScorelessTurn();
-        RotateTurn();
+        RotateTurn(false);
         
         return Result.Success();
     }
@@ -294,7 +294,7 @@ public class LetterGameEngine : ILetterGameEngine
             currentTurnPlayerHand.RemainingTime = TimeSpan.Zero;
             currentTurnPlayerHand.TimeDepleted = true;
             _consecutiveScorelessTurns = 0;
-            RotateTurn();
+            RotateTurn(false);
         }
         
         if (_playerHands.All(h => h.Value.TimeDepleted))
@@ -399,7 +399,7 @@ public class LetterGameEngine : ILetterGameEngine
             FinishGame();
             return new MoveResult(true, null, null);
         }
-        RotateTurn();
+        RotateTurn(true);
         
         return new MoveResult(true, null, null);
     }
@@ -547,7 +547,7 @@ public class LetterGameEngine : ILetterGameEngine
         return true;
     }
 
-    private void RotateTurn()
+    private void RotateTurn(bool playerMoved)
     {
         var currentPlayer = _gamePlayers.First(p => p.PlayerId == _currentTurnPlayerId);
         var currentIndex = _gamePlayers.IndexOf(currentPlayer);
@@ -559,7 +559,7 @@ public class LetterGameEngine : ILetterGameEngine
 
             if (_playerHands.TryGetValue(candidatePlayer.PlayerId, out var hand) && !hand.TimeDepleted)
             {
-                SubtractTime(_currentTurnPlayerId, _currentTurnStartedAt, true);
+                SubtractTime(_currentTurnPlayerId, _currentTurnStartedAt, playerMoved);
                 _currentTurnPlayerId = candidatePlayer.PlayerId;
                 _currentTurnStartedAt = DateTimeOffset.UtcNow;
                 NotifyStateChanged();
@@ -604,7 +604,7 @@ public class LetterGameEngine : ILetterGameEngine
                          _logger.LogWarning("Bot {PlayerName} move failed: {Error}", currentTurnPlayer.PlayerName, result.Error);
                          if (_currentTurnPlayerId == currentTurnPlayer.PlayerId)
                          {
-                             RotateTurn();
+                             RotateTurn(false);
                          }
                     }
                 }
@@ -613,7 +613,7 @@ public class LetterGameEngine : ILetterGameEngine
                     _logger.LogError(ex, "Error during bot {PlayerName} turn execution", currentTurnPlayer.PlayerName);
                     if (_currentTurnPlayerId == currentTurnPlayer.PlayerId)
                     {
-                        RotateTurn();
+                        RotateTurn(false);
                     }
                 }
                 finally
@@ -646,7 +646,12 @@ public class LetterGameEngine : ILetterGameEngine
             botHand.Tiles.Select(t => new TileInstanceDetails(t.TileId, t.ValueId, t.SelectedValueId)).ToList()
         );
 
-        var action = await strategy.GetNextMove(_boardLayout, _placedTiles, botHandDetails, _initialSettings.Language);
+        var action = await strategy.GetNextMove(
+            _boardLayout, 
+            _placedTiles, 
+            botHandDetails, 
+            _tileBag.Count,
+            _initialSettings.Language);
 
         lock (_lock)
         {
