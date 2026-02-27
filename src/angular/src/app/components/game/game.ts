@@ -32,6 +32,7 @@ import { GetPlayerTimePipe } from './pipes/get-player-time-pipe';
 import { GetPlayerOfflinePipe } from './pipes/get-player-offline-pipe';
 import { GetBotInfoPipe } from '../lobby/pipes/get-bot-info-pipe';
 import { BoardPositionPipe } from './pipes/board-position-pipe';
+import { LoginHubService } from '../../services/login-hub-service';
 
 @Component({
   selector: 'app-game',
@@ -59,6 +60,7 @@ export class Game implements OnDestroy {
   myId = signal(getPlayerId());
 
   private gameHubService = inject(GameHubService);
+  private loginHubService = inject(LoginHubService);
   private lastNotifiedTurnStartedAt = '';
 
   private audioContext?: AudioContext;
@@ -497,7 +499,7 @@ export class Game implements OnDestroy {
   private initializeTimersFromState() {
     const state = this.gameState();
     const scores = state?.scores ?? [];
-    const now = Date.now();
+    const now = Date.now() + this.loginHubService.clientTimeOffsetMs();
 
     const map = new Map<string, number>();
     for (const s of scores) {

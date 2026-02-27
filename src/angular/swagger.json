@@ -565,6 +565,38 @@
         }
       }
     },
+    "/hubs/LoginHub/GetServerUtcTime": {
+      "post": {
+        "tags": [
+          "LoginHub"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateTimeOffsetResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateTimeOffsetResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DateTimeOffsetResult"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          { }
+        ]
+      }
+    },
     "/hubs/LoginHub/Login": {
       "post": {
         "tags": [
@@ -1062,6 +1094,28 @@
           },
           "value": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DateTimeOffsetResult": {
+        "type": "object",
+        "properties": {
+          "isSuccess": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "isFailure": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "error": {
+            "$ref": "#/components/schemas/Error"
+          },
+          "value": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
           }
         },
         "additionalProperties": false

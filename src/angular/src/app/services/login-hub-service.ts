@@ -6,7 +6,7 @@ import { Router } from '@angular/router';
 import { GameHubService } from './game-hub-service';
 import { TranslocoService } from '@jsverse/transloco';
 import { getSelectedLang } from '../core/utils/token-utils';
-import { BooleanResult, LoginDataResult } from '../api';
+import { BooleanResult, DateTimeOffsetResult, LoginDataResult } from '../api';
 
 @Injectable({
   providedIn: 'root',
@@ -23,6 +23,8 @@ export class LoginHubService {
   public connectionEstablished = this._connectionEstablished.asReadonly();
 
   private _loggedIn = signal(false);
+  public clientTimeOffsetMs = signal(0);
+
   public loggedIn = this._loggedIn.asReadonly();
 
   private isRetrying = false;
@@ -69,6 +71,20 @@ export class LoginHubService {
       .then(() => {
         console.log('Login Hub connected');
         this._connectionEstablished.set(true);
+        const requestTime = Date.now();
+        this.hubConnection.invoke<DateTimeOffsetResult>("GetServerUtcTime")
+        .then(result => {
+          const responseTime = Date.now();
+          if(result.isSuccess){
+            const rtt = responseTime - requestTime;
+            const serverTimeMs = new Date(result.value!).getTime();
+            const adjustedServerTime = serverTimeMs + (rtt / 2);
+            const offset = adjustedServerTime - responseTime;
+
+            this.clientTimeOffsetMs.set(offset);
+            console.info("Server UTC offset fetched: ", offset)
+          }
+        })
         return true;
       })
       .catch((err) => {

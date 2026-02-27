@@ -16,6 +16,12 @@ public class LoginHub(IAuthorizationService authorizationService) : Hub
         var loginData = authorizationService.GenerateJwtToken(userName);
         return new LoginData(loginData.PlayerId, userName, loginData.JwtToken);
     }
+    
+    [AllowAnonymous]
+    public Result<DateTimeOffset> GetServerUtcTime()
+    {
+        return DateTimeOffset.UtcNow;
+    }
 
     [AllowAnonymous]
     public Result<bool> Validate(string accessToken)
