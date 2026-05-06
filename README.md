@@ -17,7 +17,7 @@ This project serves as a showcase of complex state management, real-time communi
 ## 🛠️ Tech Stack
 
 ### Frontend (Angular)
-*   **Core:** Angular 18+ (Standalone Components).
+*   **Core:** Angular 21 (Standalone Components).
 *   **State Management:** **Angular Signals** for granular, high-performance reactivity.
 *   **Interaction:** `@angular/cdk/drag-drop` with custom logic for grid-snapping and validation.
 *   **Styling:** SCSS with responsive layouts (CSS Grid/Flexbox) and specific mobile optimizations.
@@ -25,7 +25,7 @@ This project serves as a showcase of complex state management, real-time communi
 *   **Build:** Dockerized Nginx setup.
 
 ### Backend (.NET)
-*   **Framework:** ASP.NET Core Web API.
+*   **Framework:** ASP.NET Core Web API (.NET 10).
 *   **Real-time:** **SignalR Hubs** (`GameHub`, `LoginHub`) for bidirectional communication.
 *   **Architecture:** Clean Architecture principles.
 *   **Protocol:** Strong-typed events for game state updates (Lobby, Game Start, Move Validation).
